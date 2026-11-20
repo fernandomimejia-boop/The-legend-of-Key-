@@ -1,0 +1,62 @@
+=====================================================================
+ Aventura Algorítmica - Checkpoint 1
+ La Leyenda de Zelda: El Ascenso de Vaati (The Minish Cap)
+ Pseudocódigo de la mecánica: usar_objeto(inventario, objeto)
+=====================================================================
+
+ALGORITMO usar_objeto
+// Busca un objeto en la bolsa de Link y lo usa si lo encuentra.
+// Estrategia: búsqueda lineal. Complejidad: O(n), donde n = número de objetos.
+
+ENTRADA:  inventario : lista de cadenas   // bolsa de objetos de Link
+          objeto     : cadena             // objeto que Link quiere usar
+SALIDA:   mensaje en pantalla
+
+INICIO
+    encontrado ← FALSO
+
+    // Búsqueda lineal: se revisa la bolsa elemento por elemento
+    PARA CADA elemento EN inventario HACER
+        SI elemento = objeto ENTONCES
+            encontrado ← VERDADERO
+            SALIR DEL CICLO            // ya no hace falta seguir buscando
+        FIN SI
+    FIN PARA CADA
+
+    // Decisión según el resultado de la búsqueda
+    SI encontrado = VERDADERO ENTONCES
+        ESCRIBIR "[*] Has usado: " + objeto + ". Ezlo exclama: ¡El poder de los Picori fluye por la Espada Minish!"
+    SINO
+        ESCRIBIR "[!] No puedes usar '" + objeto + "'. Ezlo te recuerda que no está en tu bolsa."
+    FIN SI
+FIN
+
+---------------------------------------------------------------------
+ ANÁLISIS DE COMPLEJIDAD
+---------------------------------------------------------------------
+ - Mejor caso, O(1): el objeto es el primero de la bolsa; el ciclo
+   termina en la primera comparación.
+ - Peor caso, O(n): el objeto es el último o no está en la bolsa;
+   se comparan los n elementos.
+ - En Python, el ciclo PARA CADA con la bandera "encontrado" equivale
+   al operador "in", que también hace una búsqueda lineal O(n):
+
+       if objeto in inventario:
+           ...
+
+---------------------------------------------------------------------
+ EJEMPLO DE EJECUCIÓN (prueba de escritorio)
+---------------------------------------------------------------------
+ inventario = ["Pluma de Roc", "Espada Minish"]
+
+ usar_objeto(inventario, "Espada Minish")
+   Paso 1: elemento = "Pluma de Roc"  -> ¿igual a "Espada Minish"? No
+   Paso 2: elemento = "Espada Minish" -> ¿igual a "Espada Minish"? Sí
+           encontrado ← VERDADERO, se sale del ciclo
+   Salida: [*] Has usado: Espada Minish. Ezlo exclama: ¡El poder de los Picori fluye por la Espada Minish!
+
+ usar_objeto(inventario, "Jarra Mágica")
+   Paso 1: elemento = "Pluma de Roc"  -> No
+   Paso 2: elemento = "Espada Minish" -> No
+           No quedan elementos: encontrado = FALSO
+   Salida: [!] No puedes usar 'Jarra Mágica'. Ezlo te recuerda que no está en tu bolsa.
