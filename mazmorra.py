@@ -28,9 +28,18 @@ Adaptaciones de la Guía 7 incluidas:
     2. Ramificación variable con random (1, 2 o 3 puertas por sala).
     3. (Extra) Calcular la profundidad real alcanzada.
     4. (Extra) Contar las salas por nivel.
+
+Checkpoint 3 (grafos):
+    La mazmorra recursiva es un ÁRBOL, es decir, un grafo conexo sin ciclos:
+    entre dos salas hay un solo camino. construir_grafo() la pasa a la clase
+    genérica Grafo (grafo.py) y agregar_atajos() le suma puertas nuevas entre
+    salas lejanas. Esas puertas crean CICLOS: ahora hay caminos alternativos,
+    y BFS puede encontrar una ruta más corta cuando se abre un atajo.
 """
 
 import random
+
+from grafo import Grafo
 
 
 # ----------------------------------------------------------------------
@@ -282,7 +291,8 @@ def crear_mazmorra(profundidad_maxima=3, limite_salas=15, semilla=None, intentos
     """
     Prepara los datos y llama a la función recursiva generar_mazmorra().
     Garantiza que la mazmorra cumpla los requisitos mínimos del checkpoint:
-    al menos 7 salas, profundidad real mínima de 2 y un jefe colocado.
+    al menos 7 salas, profundidad real mínima de 2, un jefe colocado y al
+    menos 3 cofres (para que las misiones de tesoros siempre se puedan cumplir).
 
     Como la ramificación es aleatoria, un intento podría generar una mazmorra
     demasiado pequeña (por ejemplo, si todas las salas abren solo 1 puerta).
@@ -336,9 +346,11 @@ def crear_mazmorra(profundidad_maxima=3, limite_salas=15, semilla=None, intentos
         Retorna True si cumple, False si hay que volver a generarla.
         Complejidad: O(n), por el cálculo recursivo de la profundidad real.
         """
+        cofres = sum(1 for sala in mapa if PREFIJO_COFRE in sala)
         return (len(mapa) >= 7
                 and calcular_profundidad_real(mapa, SALA_INICIAL) >= 2
-                and estado["jefe_colocado"])
+                and estado["jefe_colocado"]
+                and cofres >= 3)
 
     for _ in range(intentos):
         mapa, estado = _un_intento(rama_min=1)
@@ -409,6 +421,113 @@ def obtener_objeto_de_sala(sala):
     if fin == -1:
         return None
     return sala[inicio:fin]
+
+
+# ----------------------------------------------------------------------
+# Checkpoint 3: la mazmorra como grafo
+# ----------------------------------------------------------------------
+
+def construir_grafo(mapa):
+    """
+    Pasa el diccionario de adyacencia de la mazmorra a un objeto Grafo
+    (no dirigido): una arista por cada puerta.
+    Complejidad: O(V + E).
+    Retorna el Grafo (vacío si el mapa no es válido).
+    """
+    grafo = Grafo()
+    if not isinstance(mapa, dict):
+        print("[!] El mapa no es válido: no se puede construir el grafo.")
+        return grafo
+    for sala, conectadas in mapa.items():
+        grafo.agregar_vertice(sala)
+        for otra in conectadas:
+            grafo.agregar_arista(sala, otra)
+    return grafo
+
+
+def sala_del_jefe(grafo):
+    """
+    Retorna el nombre de la sala con [JEFE VAATI], o None si no hay.
+    Complejidad: O(V).
+    """
+    for sala in grafo.vertices():
+        if MARCADOR_JEFE in sala:
+            return sala
+    return None
+
+
+def agregar_atajos(grafo, cantidad=2, distancia_minima=3):
+    """
+    Agrega 'cantidad' puertas nuevas (atajos) entre salas que están a
+    'distancia_minima' saltos o más, para que el atajo realmente acorte el
+    camino. La sala del jefe nunca recibe atajos: solo se entra por su
+    puerta sellada.
+
+    Usa BFS (ruta_mas_corta) para medir la distancia entre cada par de salas.
+    Complejidad: O(V^2 · (V + E)) en el peor caso; con 15 salas es
+    instantáneo.
+
+    Retorna la lista de atajos agregados como tuplas (sala_a, sala_b).
+    """
+    jefe = sala_del_jefe(grafo)
+    salas = [s for s in grafo.vertices() if s != jefe]
+    candidatos = []
+    for i, a in enumerate(salas):
+        for b in salas[i + 1:]:
+            if grafo.existe_arista(a, b):
+                continue
+            ruta = grafo.ruta_mas_corta(a, b)
+            if ruta is not None and len(ruta) - 1 >= distancia_minima:
+                candidatos.append((a, b))
+    random.shuffle(candidatos)
+
+    atajos = []
+    usadas = set()
+    for a, b in candidatos:
+        if len(atajos) >= cantidad:
+            break
+        if a in usadas or b in usadas:      # cada sala recibe a lo más un atajo
+            continue
+        grafo.agregar_arista(a, b)
+        atajos.append((a, b))
+        usadas.update((a, b))
+    return atajos
+
+
+def tesoros_por_sala(grafo):
+    """
+    Diccionario {sala: objeto} con las salas marcadas (cofres y jefe).
+    Complejidad: O(V).
+    """
+    return {sala: obtener_objeto_de_sala(sala) for sala in grafo.vertices()
+            if es_sala_marcada(sala)}
+
+
+def imprimir_grafo_mazmorra(grafo, atajos, puertas_selladas=None):
+    """
+    Muestra el grafo como lista de adyacencia (para la evidencia y el
+    README) y marca los atajos y las puertas selladas.
+    Complejidad: O(V + E).
+    """
+    puertas_selladas = puertas_selladas or {}
+    atajos_claves = {tuple(sorted(a)) for a in atajos}
+    print("\n============ GRAFO DEL PALACIO (lista de adyacencia) ============")
+    for sala in grafo.vertices():
+        partes = []
+        for vecino in grafo.vecinos(sala):
+            clave = tuple(sorted((sala, vecino)))
+            marca = ""
+            if clave in atajos_claves:
+                marca += " (atajo)"
+            if clave in puertas_selladas:
+                marca += " (sellada)"
+            partes.append(vecino + marca)
+        print(f"  {sala}:")
+        for parte in partes:
+            print(f"      -> {parte}")
+    print(f"  Vértices: {grafo.num_vertices()} | Aristas: {grafo.num_aristas()}"
+          f" | Atajos que forman ciclos: {len(atajos)}")
+    print("=================================================================\n")
 
 
 # ----------------------------------------------------------------------
