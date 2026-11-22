@@ -92,6 +92,30 @@ def _narrar_evento(evento):
     return f"📯 {evento}."
 
 
+def tipo_de_evento(evento):
+    """
+    Clasifica un evento para el estado del mundo (Checkpoint 3):
+    "enemigo", "rupias", "trampa", "hada", "vaati" u "otro".
+    El diccionario de estado cuenta cuántos eventos de cada tipo vivió Link,
+    y esos conteos completan misiones (por ejemplo, vencer a 2 secuaces).
+    Complejidad: O(1) respecto al tamaño de la cola.
+    """
+    if not isinstance(evento, str):
+        return "otro"
+    texto = evento.lower()
+    if any(e in texto for e in ("moblin", "keese", "octorok", "chuchu", "darknut")):
+        return "enemigo"
+    if "rupia" in texto:
+        return "rupias"
+    if "trampa" in texto or "pinchos" in texto:
+        return "trampa"
+    if "hada" in texto:
+        return "hada"
+    if "vaati" in texto:
+        return "vaati"
+    return "otro"
+
+
 # ----------------------------------------------------------------------
 # Funciones obligatorias de la cola de eventos
 # ----------------------------------------------------------------------
