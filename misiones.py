@@ -18,8 +18,9 @@ completado. Es la evolución del árbol que presentamos en la exposición de
 
 ¿Cómo se completa una misión?
     Cada misión tiene una CONDICIÓN (indicador, cantidad), por ejemplo
-    ("salas_visitadas", 3). En esta versión se completan con
-    completar_mision(), que respeta el bloqueo por dependencias.
+    ("salas_visitadas", 3). Después de cada acción, main.py arma los
+    indicadores con el diccionario de estado y llama a revisar_misiones():
+    toda misión DISPONIBLE cuya condición se cumple se completa sola.
 
 ¿Qué efecto tiene en la partida?
     La recompensa en rupias y, en algunas misiones, abrir una puerta sellada
@@ -242,25 +243,91 @@ def completar_mision(raiz, nombre):
     return mision
 
 
+def condicion_cumplida(mision, indicadores):
+    """
+    Revisa si se cumple la condición de una misión con los indicadores del
+    estado del mundo (diccionario). Usa .get() por si falta un indicador.
+    Complejidad: O(1).
+    """
+    if mision.condicion is None:
+        return False
+    indicador, cantidad = mision.condicion
+    return indicadores.get(indicador, 0) >= cantidad
+
+
+def revisar_misiones(raiz, indicadores):
+    """
+    Completa automáticamente toda misión disponible cuya condición ya se
+    cumple. Repite mientras haya cambios, porque completar una misión puede
+    desbloquear a su hija y su condición quizá ya se cumplía (cascada).
+
+    Retorna la lista de misiones completadas en esta revisión.
+    Complejidad: O(n · k), con k = misiones completadas en la cascada
+    (k ≤ n, y en la práctica 0, 1 o 2).
+    """
+    completadas = []
+    hubo_cambio = True
+    while hubo_cambio:
+        hubo_cambio = False
+        for mision in misiones_disponibles(raiz):
+            if condicion_cumplida(mision, indicadores):
+                mision.completada = True
+                completadas.append(mision)
+                hubo_cambio = True
+    return completadas
+
+
+# ----------------------------------------------------------------------
+# Vista para el menú
+# ----------------------------------------------------------------------
+
+def mostrar_misiones(raiz, indicadores=None):
+    """
+    Muestra el árbol con los tres recorridos que usa el juego:
+        - preorden: el árbol con sangría y el estado de cada misión;
+        - por niveles: las misiones disponibles agrupadas por etapa, con
+          el progreso de su condición;
+        - postorden: las rupias ganadas y las pendientes de cada rama.
+    Complejidad: O(n).
+    """
+    indicadores = indicadores or {}
+    print("\n=============== MISIONES DEL PALACIO ===============")
+    imprimir_preorden(raiz)
+    print(f"\n  Completadas: {contar_completadas(raiz)} de {contar_misiones(raiz)}"
+          f" | Altura del árbol: {altura(raiz)}")
+
+    print("\n  Disponibles por etapa (recorrido por niveles):")
+    hay = False
+    for numero, nivel in enumerate(recorrido_por_niveles(raiz)):
+        disponibles = [n for n, padre_ok in nivel if not n.completada and padre_ok]
+        for mision in disponibles:
+            hay = True
+            progreso = ""
+            if mision.condicion:
+                ind, cant = mision.condicion
+                progreso = f"  [{min(indicadores.get(ind, 0), cant)}/{cant}]"
+            print(f"    Etapa {numero}: {mision.nombre}{progreso}")
+    if not hay:
+        print("    Ninguna: ¡Link completó todas las misiones!")
+
+    print("\n  Rupias por rama (postorden):")
+    for rama in raiz.hijos:
+        print(f"    {rama.nombre}: ganadas {recompensa_rama(rama, True)},"
+              f" pendientes {recompensa_rama(rama, False)}")
+    print("====================================================")
+
+
 # ----------------------------------------------------------------------
 # Autoprueba
 # ----------------------------------------------------------------------
 
 if __name__ == "__main__":
     arbol = construir_arbol_misiones(3)
-    completar_mision(arbol, "Entrar al Palacio de los Vientos")
-    completar_mision(arbol, "Explorar 3 salas")
-    print("Preorden con sangría:")
-    imprimir_preorden(arbol)
-    print("\nDisponibles por etapa (por niveles):")
-    for numero, nivel in enumerate(recorrido_por_niveles(arbol)):
-        for mision, padre_ok in nivel:
-            if not mision.completada and padre_ok:
-                print(f"  Etapa {numero}: {mision.nombre}")
-    print("\nRupias por rama (postorden):")
-    for rama in arbol.hijos:
-        print(f"  {rama.nombre}: ganadas {recompensa_rama(rama, True)}, pendientes {recompensa_rama(rama, False)}")
+    ind = {"salas_visitadas": 4, "tesoros_recogidos": 1}
+    print("Completadas:", [m.nombre for m in revisar_misiones(arbol, ind)])
+    mostrar_misiones(arbol, ind)
     print("\n--- Casos límite ---")
     completar_mision(arbol, "Misión que no existe")
     completar_mision(arbol, "Explorar 3 salas")
     completar_mision(arbol, "Derrotar a Vaati")
+    print("Sin cambios nuevos:", revisar_misiones(arbol, ind))
