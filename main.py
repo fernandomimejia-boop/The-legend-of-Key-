@@ -1,31 +1,41 @@
 """
-Archivo central - Aventura Algorítmica (Checkpoint 2)
+Archivo central - Aventura Algorítmica (Checkpoint 3)
 La Leyenda de Zelda: El Ascenso de Vaati
 
-Integra en una partida jugable las cuatro estructuras del proyecto:
-    - inventario.py -> Lista   (Checkpoint 1): objetos de Link.
-    - historial.py  -> Pila    (LIFO): acciones de Link y deshacer (backtracking).
-    - eventos.py    -> Cola    (FIFO, deque): eventos del mapa y turnos de combate.
-    - mazmorra.py   -> Recursividad: generación del Palacio de los Vientos.
+Integra en una partida jugable todas las estructuras del proyecto:
+    - inventario.py -> Lista      (Checkpoint 1): objetos de Link.
+    - historial.py  -> Pila       (LIFO): acciones de Link y deshacer (backtracking).
+    - eventos.py    -> Cola       (FIFO, deque): eventos del mapa y turnos de combate.
+    - mazmorra.py   -> Recursividad: genera el Palacio de los Vientos (un árbol).
+    - grafo.py      -> Grafo      (lista de adyacencia): el palacio con atajos,
+                                   BFS para rutas y DFS para zonas alcanzables.
+    - misiones.py   -> Árbol      de misiones que dependen de la anterior.
+    - estado.py     -> Diccionario con el estado del mundo.
+
+CÓMO TRABAJAN JUNTAS (Checkpoint 3):
+    1. Link se mueve por las aristas del GRAFO. Las puertas selladas viven en
+       el DICCIONARIO de estado (clave = tupla de dos salas) y el grafo las
+       recibe como aristas bloqueadas: no se puede cruzar una puerta sellada.
+    2. Cada acción actualiza el DICCIONARIO: salas visitadas, tesoros,
+       eventos vividos y rupias.
+    3. Después de cada acción, el ÁRBOL de misiones revisa esos números: si
+       una misión disponible cumple su condición, se completa sola, da rupias
+       y puede ABRIR una puerta (se elimina del diccionario).
+    4. Al abrirse una puerta, BFS encuentra rutas nuevas (los atajos crean
+       ciclos y caminos más cortos) y DFS deja de ver zonas aisladas.
 
 Decisiones de diseño (documentadas también en el README):
-    1. Eventos al deshacer: el evento procesado al entrar a una sala SE PIERDE
-       (no vuelve a la cola). En la lógica del juego, lo que ocurrió en Hyrule
-       ya ocurrió; deshacer devuelve a Link a la sala anterior, pero no revive
-       al enemigo ni repone la trampa. Así la cola sigue siendo FIFO pura
-       (solo append para encolar y popleft para desencolar).
-    2. Recoger objetos también se registra en el historial. Si la última acción
-       fue "Recoger", deshacer devuelve el objeto al cofre (sale del inventario)
-       y Link se queda en la sala; un segundo deshacer revierte el movimiento.
-       Esto respeta el orden LIFO: se deshace siempre lo más reciente.
-    3. Ocarina del Viento (deshacer_multiples, Guía 5): deshace varias acciones
-       de una vez y aplica el efecto de cada una en orden LIFO, así que Link
-       termina en la sala desde la que hizo el movimiento más antiguo deshecho.
-    4. Explorar la sala (procesar_multiples_eventos, Guía 6): Link se queda en
-       la sala y enfrenta los siguientes 'n' eventos de la cola en orden FIFO.
-    5. Usar un objeto (usar_objeto, Checkpoint 1): se registra en el historial.
-       Deshacerlo no cambia la sala ni el inventario, porque usar un objeto no
-       lo consume.
+    1. Eventos al deshacer: el evento procesado SE PIERDE (no vuelve a la cola).
+    2. Recoger también se registra en el historial; deshacerlo devuelve el
+       objeto a su cofre (inventario y diccionario de estado).
+    3. Ocarina del Viento: deshace varias acciones en orden LIFO.
+    4. Explorar la sala: procesa varios eventos seguidos en orden FIFO.
+    5. Usar un objeto se registra en el historial; deshacerlo no lo consume.
+    6. Estado del mundo al deshacer (Checkpoint 3): deshacer revierte la
+       POSICIÓN de Link y los TESOROS recogidos, pero no lo que Link ya
+       descubrió: las salas siguen visitadas, los eventos vividos siguen
+       contados y las misiones completadas (con sus rupias y sus puertas
+       abiertas) no se pierden.
 """
 
 import sys
@@ -35,6 +45,8 @@ import inventario
 import historial
 import eventos
 import mazmorra
+import misiones
+import estado as mundo
 
 
 # ----------------------------------------------------------------------
@@ -49,15 +61,20 @@ OPCION_OCARINA = 5
 OPCION_HISTORIAL = 6
 OPCION_EXPLORAR = 7
 OPCION_TURNOS = 8
-OPCION_SALIR = 9
+OPCION_RUTA = 9
+OPCION_MAPA = 10
+OPCION_MISIONES = 11
+OPCION_ESTADO = 12
+OPCION_SALIR = 13
 
 # Objetos con los que Link empieza la aventura (lore del Checkpoint 1)
 OBJETOS_INICIALES = ["Espada Minish", "Pluma de Roc"]
 
-# ROBUSTEZ: en Windows, si la salida se redirige a un archivo (por ejemplo,
-# "python main.py > evidencia.txt") o la consola no usa UTF-8, imprimir
-# emojis o tildes lanza UnicodeEncodeError. Se fuerza UTF-8 y, si algún
-# carácter no se puede mostrar, se reemplaza en lugar de cerrar el juego.
+# Rupias que da un evento de rupias
+RUPIAS_POR_EVENTO = 20
+
+# ROBUSTEZ: en Windows, si la salida se redirige a un archivo o la consola no
+# usa UTF-8, imprimir emojis o tildes lanza UnicodeEncodeError.
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 except (AttributeError, ValueError):
@@ -65,16 +82,14 @@ except (AttributeError, ValueError):
 
 
 # ----------------------------------------------------------------------
-# Funciones de apoyo de main.py
+# Entrada robusta
 # ----------------------------------------------------------------------
 
 def leer_entrada(mensaje):
     """
     Lee texto del usuario sin que el programa se caiga.
-    ROBUSTEZ: si el usuario presiona Ctrl+C o la entrada se termina (EOF),
-    input() lanzaría KeyboardInterrupt/EOFError en CADA llamada; devolver None
-    provocaría un ciclo infinito. Por eso se cierra la partida de forma
-    ordenada con SystemExit(0): sin traceback y sin código de error.
+    ROBUSTEZ: con Ctrl+C o fin de la entrada (EOF) se cierra la partida de
+    forma ordenada con SystemExit(0), sin traceback y sin ciclo infinito.
     """
     try:
         return input(mensaje)
@@ -86,62 +101,58 @@ def leer_entrada(mensaje):
 def leer_opcion_numerica(mensaje, minimo, maximo):
     """
     Pide un número entero y valida que esté en el rango [minimo, maximo].
-
-    ROBUSTEZ (casos límite de cualquier menú):
-        - Texto o símbolos  -> int() lanza ValueError, se captura con try/except.
-        - Entrada vacía     -> también ValueError.
-        - 0, negativos o fuera de rango -> se valida el rango explícitamente.
-    Retorna el número válido, o None si la entrada no es válida
-    (quien llama decide hacer 'continue').
+    ROBUSTEZ: texto, símbolos, entrada vacía, 0, negativos y números fuera de
+    rango muestran un mensaje y retornan None (quien llama hace 'continue').
     """
     texto = leer_entrada(mensaje)
-    if texto is None:
-        return None
-
     try:
         numero = int(texto.strip())
     except ValueError:
         print(f"[!] '{texto.strip()}' no es una opción válida. "
               f"Las runas de Hyrule solo aceptan números del {minimo} al {maximo}.")
         return None
-
     if numero < minimo or numero > maximo:
         print(f"[!] Opción fuera de rango. Elige un número del {minimo} al {maximo}.")
         return None
-
     return numero
 
+
+# ----------------------------------------------------------------------
+# Pantallas
+# ----------------------------------------------------------------------
 
 def mostrar_encabezado():
     """Imprime la portada temática del juego."""
     print("==================================================")
     print("     LA LEYENDA DE ZELDA: EL ASCENSO DE VAATI     ")
-    print("        Aventura Algorítmica - Checkpoint 2       ")
+    print("        Aventura Algorítmica - Checkpoint 3       ")
     print("==================================================")
     print("Héroe: Link | Antagonista: Vaati | Región: Hyrule\n")
 
 
-def mostrar_menu(sala_actual):
-    """Muestra la ubicación de Link y las opciones del menú principal."""
+def mostrar_menu(partida):
+    """Muestra la ubicación, las rupias y las opciones del menú principal."""
     print("\n--------------------------------------------------")
-    print(f"📍 Link está en: {sala_actual}")
+    print(f"📍 Link está en: {partida['sala']}")
+    print(f"💎 Rupias: {partida['estado']['rupias']}")
     print("--------------------------------------------------")
-    print("1. Moverse a otra sala")
-    print("2. Ver inventario")
-    print("3. Usar un objeto")
-    print("4. Deshacer última acción")
-    print("5. Tocar la Ocarina del Viento (deshacer varias acciones)")
-    print("6. Ver historial completo")
-    print("7. Explorar la sala (resolver varios eventos)")
-    print("8. Simular turnos de batalla")
-    print("9. Salir del juego")
+    print(" 1. Moverse a otra sala")
+    print(" 2. Ver inventario")
+    print(" 3. Usar un objeto")
+    print(" 4. Deshacer última acción")
+    print(" 5. Tocar la Ocarina del Viento (deshacer varias acciones)")
+    print(" 6. Ver historial completo")
+    print(" 7. Explorar la sala (resolver varios eventos)")
+    print(" 8. Simular turnos de batalla")
+    print(" 9. Buscar la ruta más corta a una sala (BFS)")
+    print("10. Ver salas alcanzables y zonas aisladas (DFS)")
+    print("11. Ver árbol de misiones")
+    print("12. Ver estado del mundo")
+    print("13. Salir del juego")
 
 
 def mostrar_inventario(mochila):
-    """
-    Muestra el inventario de Link (Checkpoint 1: lista).
-    Maneja el caso de inventario vacío.
-    """
+    """Muestra el inventario de Link (Checkpoint 1: lista)."""
     print("\n============ BOLSA DE OBJETOS DE LINK ============")
     if len(mochila) == 0:
         print("  La bolsa está vacía. Explora las salas marcadas para encontrar tesoros.")
@@ -151,284 +162,476 @@ def mostrar_inventario(mochila):
     print("==================================================")
 
 
-def intentar_recoger_tesoro(sala, mochila, cronicas, tesoros_recogidos):
+def elegir_sala(partida, mensaje):
     """
-    INTEGRACIÓN (d): si la sala está marcada como sala profunda ([JEFE VAATI]
-    o [COFRE: ...]), Link obtiene su objeto, que entra al inventario del
-    Checkpoint 1 y se registra en el historial como acción "Recoger".
-
-    Nota: el generador marca las salas con "[JEFE VAATI]" y "[COFRE: objeto]",
-    por eso se usa mazmorra.es_sala_marcada() en lugar de buscar el texto
-    literal "[JEFE]" o "[COFRE]".
-
-    Un tesoro solo puede recogerse una vez (conjunto tesoros_recogidos).
+    Muestra todas las salas numeradas y pide una por número.
+    ROBUSTEZ: solo acepta índices de las salas mostradas; cualquier otra
+    entrada retorna None. Así nunca se consulta una sala que no existe.
     """
-    if not mazmorra.es_sala_marcada(sala):
+    salas = partida["grafo"].vertices()
+    print()
+    for i, sala in enumerate(salas, start=1):
+        marca = "  <- Link está aquí" if sala == partida["sala"] else ""
+        print(f"  {i:>2}) {sala}{marca}")
+    eleccion = leer_opcion_numerica(mensaje, 1, len(salas))
+    if eleccion is None:
+        return None
+    return salas[eleccion - 1]
+
+
+# ----------------------------------------------------------------------
+# Integración: estado del mundo, eventos y misiones
+# ----------------------------------------------------------------------
+
+def indicadores(partida):
+    """
+    Arma los números que revisan las misiones a partir del DICCIONARIO de
+    estado (resumen_estado + conteos de eventos + jefe derrotado).
+    Complejidad: O(S), S = salas.
+    """
+    est = partida["estado"]
+    datos = mundo.resumen_estado(est)
+    datos["hadas"] = mundo.contar_eventos(est, "hada")
+    jefe = mundo.obtener_sala(est, partida["jefe"]) if partida["jefe"] else None
+    datos["jefe_derrotado"] = 1 if jefe and jefe["visitada"] else 0
+    return datos
+
+
+def revisar_misiones(partida):
+    """
+    INTEGRACIÓN ÁRBOL -> DICCIONARIO -> GRAFO:
+    completa las misiones disponibles cuya condición ya se cumple; cada una
+    da rupias (diccionario) y puede abrir una puerta sellada (se elimina del
+    diccionario, y el grafo deja de tratarla como bloqueada).
+    """
+    completadas = misiones.revisar_misiones(partida["misiones"], indicadores(partida))
+    for mision in completadas:
+        print(f"\n🏆 ¡Misión completada: {mision.nombre}!")
+        if mision.recompensa:
+            mundo.sumar_rupias(partida["estado"], mision.recompensa)
+            print(f"   +{mision.recompensa} rupias (total: {partida['estado']['rupias']})")
+        if mision.puerta and mundo.abrir_puerta(partida["estado"], *mision.puerta):
+            a, b = mision.puerta
+            print(f"   🌬️  El viento de Vaati se disipa: se abre la puerta {a} <-> {b}.")
+        if mision.nombre == "Derrotar a Vaati":
+            print("\n✨ ¡Vaati ha sido derrotado! El Palacio de los Vientos vuelve a la calma.")
+            print("   Hyrule está a salvo. Puedes seguir explorando o salir del juego.")
+        disponibles = [m.nombre for m in misiones.misiones_disponibles(partida["misiones"])]
+        hijas = [h.nombre for h in mision.hijos if h.nombre in disponibles]
+        if hijas:
+            print(f"   Nuevas misiones disponibles: {', '.join(hijas)}")
+
+
+def aplicar_evento(partida, evento):
+    """
+    INTEGRACIÓN COLA -> DICCIONARIO: cada evento procesado se cuenta en el
+    estado del mundo por su tipo, y los de rupias suman rupias.
+    """
+    if evento is None:
         return
+    tipo = eventos.tipo_de_evento(evento)
+    mundo.registrar_evento(partida["estado"], tipo)
+    if tipo == "rupias":
+        mundo.sumar_rupias(partida["estado"], RUPIAS_POR_EVENTO)
+        print(f"   +{RUPIAS_POR_EVENTO} rupias (total: {partida['estado']['rupias']})")
+    elif tipo == "enemigo":
+        print(f"   Link vence al enemigo. Secuaces vencidos: "
+              f"{mundo.contar_eventos(partida['estado'], 'enemigo')}")
 
-    if sala in tesoros_recogidos:
+
+def intentar_recoger_tesoro(partida):
+    """
+    Si la sala actual tiene un tesoro sin recoger (según el DICCIONARIO),
+    Link lo obtiene: entra al inventario (lista), se marca en el estado y se
+    registra en el historial (pila) como "Recoger".
+    ROBUSTEZ: un tesoro ya recogido no se puede recoger otra vez.
+    """
+    sala = partida["sala"]
+    datos = mundo.obtener_sala(partida["estado"], sala)
+    if datos is None or datos["tesoro"] is None:
+        return
+    if datos["recogido"]:
         print("[i] El cofre de esta sala ya está abierto. Aquí no queda nada más.")
         return
 
-    objeto = mazmorra.obtener_objeto_de_sala(sala)
-    if objeto is None:
-        return
-
-    if "[JEFE VAATI]" in sala:
+    objeto = datos["tesoro"]
+    vaati, _ = misiones.buscar_mision(partida["misiones"], "Derrotar a Vaati")
+    if mazmorra.MARCADOR_JEFE in sala and vaati is not None and vaati.completada:
+        print(f"\n✨ Link recoge el {objeto} que Vaati dejó al ser derrotado.")
+    elif mazmorra.MARCADOR_JEFE in sala:
         print("\n🌀 ¡Vaati aparece envuelto en un torbellino oscuro!")
         print("⚔️  Link resiste el viento y lo derrota con la Espada Minish.")
         print(f"✨ Vaati deja caer el {objeto}.")
     else:
         print("\n🎁 ¡Da-da-da-daaa! Link abre un cofre antiguo.")
 
-    inventario.agregar_objeto(mochila, objeto)                 # Checkpoint 1: lista
-    tesoros_recogidos.add(sala)
-    historial.registrar_accion(cronicas, {"tipo": "Recoger",   # Pila: append
-                                          "objeto": objeto,
-                                          "sala": sala})
+    inventario.agregar_objeto(partida["mochila"], objeto)          # Lista
+    mundo.marcar_tesoro(partida["estado"], sala, True)              # Diccionario
+    historial.registrar_accion(partida["cronicas"], {"tipo": "Recoger",   # Pila
+                                                     "objeto": objeto, "sala": sala})
 
 
-def accion_moverse(mapa, sala_actual, cola_eventos, cronicas, mochila, tesoros_recogidos):
+# ----------------------------------------------------------------------
+# Acciones del menú
+# ----------------------------------------------------------------------
+
+def accion_moverse(partida):
     """
-    Opción 1. Muestra las salas conectadas, valida la elección y mueve a Link.
+    Opción 1. Muestra las puertas de la sala según el GRAFO y mueve a Link.
 
     INTEGRACIÓN:
-        (a) Registra el movimiento en el historial con {'desde', 'hacia'}.
-        (b) Actualiza la sala actual (se retorna la nueva sala).
-        (c) Dispara el siguiente evento de la cola (popleft).
-        (d) Si la sala está marcada, Link recoge su objeto.
+        (a) Las puertas selladas (diccionario) se muestran pero no se cruzan.
+        (b) El movimiento se apila en el historial con {'desde', 'hacia'}.
+        (c) Dispara el siguiente evento de la cola y lo cuenta en el estado.
+        (d) Marca la sala como visitada y recoge su tesoro si tiene.
+        (e) Revisa las misiones, que pueden abrir puertas nuevas.
 
-    ROBUSTEZ: valida por índice que la sala elegida exista entre las opciones
-    presentadas y, además, que exista la conexión en el mapa.
-
-    Retorna la sala donde queda Link (la misma si el movimiento no se hizo).
+    ROBUSTEZ: solo se aceptan las puertas mostradas, y una puerta sellada es
+    una acción no permitida: se avisa y Link no se mueve.
     """
-    conectadas = mazmorra.obtener_salas_conectadas(mapa, sala_actual)
-
-    if len(conectadas) == 0:
+    sala_actual = partida["sala"]
+    puertas = partida["grafo"].vecinos(sala_actual)
+    if not puertas:
         print("[!] No hay puertas en esta sala. Link no puede avanzar.")
-        return sala_actual
+        return
 
-    print("\n🚪 Puertas disponibles:")
-    for i, sala in enumerate(conectadas, start=1):
-        print(f"  {i}) {sala}")
-    opcion_quedarse = len(conectadas) + 1
+    print("\n🚪 Puertas de la sala:")
+    for i, sala in enumerate(puertas, start=1):
+        mision = mundo.motivo_sello(partida["estado"], sala_actual, sala)
+        datos = mundo.obtener_sala(partida["estado"], sala)
+        marcas = []
+        if mision:
+            marcas.append(f"sellada: se abre con '{mision}'")
+        if datos and datos["visitada"]:
+            marcas.append("visitada")
+        texto = f"  ({', '.join(marcas)})" if marcas else ""
+        print(f"  {i}) {sala}{texto}")
+    opcion_quedarse = len(puertas) + 1
     print(f"  {opcion_quedarse}) Quedarse en esta sala")
 
-    # ROBUSTEZ: validación por rango de índices (evita que lista[-1] o un índice
-    # fuera de rango seleccionen una sala que no fue presentada)
-    eleccion = leer_opcion_numerica("Elige una sala: ", 1, opcion_quedarse)
+    eleccion = leer_opcion_numerica("Elige una puerta: ", 1, opcion_quedarse)
     if eleccion is None:
         print("[i] Link duda frente a las puertas y se queda donde está.")
-        return sala_actual
-
+        return
     if eleccion == opcion_quedarse:
         print("[i] Link decide no moverse por ahora.")
-        return sala_actual
+        return
 
-    destino = conectadas[eleccion - 1]
+    destino = puertas[eleccion - 1]
 
-    # ROBUSTEZ: doble verificación de que la conexión existe en el grafo
-    if not mazmorra.existe_conexion(mapa, sala_actual, destino):
-        print(f"[!] No hay un camino directo hacia '{destino}'.")
-        return sala_actual
+    # (a) Acción no permitida: la puerta sigue sellada
+    mision = mundo.motivo_sello(partida["estado"], sala_actual, destino)
+    if mision:
+        print(f"[X] Un muro de viento sella la puerta hacia '{destino}'.")
+        print(f"    Ezlo: \"Se abrirá cuando completes la misión '{mision}'.\"")
+        return
 
-    # (a) Registrar el movimiento en la pila (backtracking real con 'desde'/'hacia')
-    movimiento = {
-        "tipo": "Moverse",
-        "desde": sala_actual,
-        "hacia": destino,
+    # (b) Historial (pila)
+    historial.registrar_accion(partida["cronicas"], {
+        "tipo": "Moverse", "desde": sala_actual, "hacia": destino,
         "detalle": f"de '{sala_actual}' a '{destino}'",
-    }
-    historial.registrar_accion(cronicas, movimiento)
-
-    # (b) Actualizar la ubicación de Link
+    })
     print(f"\n🏃 Link se mueve a: {destino}")
-    sala_actual = destino
+    partida["sala"] = destino
 
-    # (c) Cada movimiento dispara el siguiente evento de la cola (FIFO, popleft)
-    evento = eventos.procesar_siguiente_evento(cola_eventos)
-    if evento is not None:
-        movimiento["evento"] = evento   # Se guarda solo como referencia; al deshacer se pierde
+    # (c) Evento (cola) -> estado (diccionario)
+    aplicar_evento(partida, eventos.procesar_siguiente_evento(partida["cola"]))
 
-    # (d) Si la sala está marcada, Link obtiene un objeto para el inventario
-    intentar_recoger_tesoro(sala_actual, mochila, cronicas, tesoros_recogidos)
+    # (d) Estado del mundo y tesoro
+    if mundo.marcar_visitada(partida["estado"], destino):
+        visitadas = len(mundo.salas_visitadas(partida["estado"]))
+        print(f"   🗺️  Sala nueva descubierta ({visitadas} de {partida['grafo'].num_vertices()}).")
+    intentar_recoger_tesoro(partida)
 
-    return sala_actual
+    # (e) Misiones (árbol)
+    revisar_misiones(partida)
 
 
-def revertir_accion(accion, sala_actual, mochila, tesoros_recogidos):
+def revertir_accion(partida, accion):
     """
-    Aplica en el juego el efecto de UNA acción que ya salió de la pila.
-    La usan tanto el deshacer simple como la Ocarina del Viento.
-
-    - Moverse: BACKTRACKING real, Link vuelve a la sala 'desde'.
-    - Recoger: el objeto sale del inventario y vuelve a su cofre; Link se
-      queda en la sala.
-    - Usar: usar un objeto no lo consume, así que solo se informa.
-
-    Retorna la sala donde queda Link.
+    Aplica el efecto de UNA acción que ya salió de la pila (deshacer y
+    Ocarina). Decisión del Checkpoint 3: se revierten la posición y los
+    tesoros; las salas visitadas, los eventos y las misiones completadas se
+    conservan.
     """
     if not isinstance(accion, dict):
         print("[i] La acción deshecha no implicaba moverse. Link sigue en la misma sala.")
-        return sala_actual
-
+        return
     tipo = accion.get("tipo")
 
     if tipo == "Moverse":
-        sala_anterior = accion.get("desde")
-        if sala_anterior is None:
+        anterior = accion.get("desde")
+        if anterior is None or not partida["grafo"].existe_vertice(anterior):
             print("[!] Las crónicas no indican de dónde venía Link. Se queda en su sala.")
-            return sala_actual
-        print(f"[⏪] Un remolino arrastra a Link de vuelta a: {sala_anterior}")
-        print("     (El evento de la sala que dejaste ya ocurrió y no regresa a la cola.)")
-        return sala_anterior
+            return
+        partida["sala"] = anterior
+        print(f"[⏪] Un remolino arrastra a Link de vuelta a: {anterior}")
+        print("     (El evento ya ocurrió y la sala sigue descubierta en el mapa.)")
+        return
 
     if tipo == "Recoger":
         objeto = accion.get("objeto")
-        sala_tesoro = accion.get("sala")
-        if objeto in mochila:
-            inventario.soltar_objeto(mochila, objeto)        # Checkpoint 1: remove()
-        tesoros_recogidos.discard(sala_tesoro)
-        print(f"[⏪] El {objeto} regresa a su cofre. Link sigue en: {sala_actual}")
-        return sala_actual
+        if objeto in partida["mochila"]:
+            inventario.soltar_objeto(partida["mochila"], objeto)   # Lista: remove()
+        mundo.marcar_tesoro(partida["estado"], accion.get("sala"), False)  # Diccionario
+        print(f"[⏪] El {objeto} regresa a su cofre. Link sigue en: {partida['sala']}")
+        print("     (Las misiones ya completadas y sus recompensas se conservan.)")
+        return
 
     if tipo == "Usar":
         print(f"[⏪] El efecto de {accion.get('objeto')} se desvanece. "
               "El objeto sigue en la bolsa de Link.")
-        return sala_actual
+        return
 
     print("[i] Acción deshecha. Link permanece en su sala.")
-    return sala_actual
 
 
-def accion_deshacer(sala_actual, cronicas, mochila, tesoros_recogidos):
+def accion_deshacer(partida):
     """
-    Opción 4. Deshace la última acción con pop() (LIFO) y aplica su efecto.
-    Si el historial está vacío, historial.deshacer_ultima_accion() muestra
-    el mensaje y retorna None; main.py no cambia de sala.
-    Retorna la sala donde queda Link.
+    Opción 4. Deshace la última acción con pop() (LIFO).
+    ROBUSTEZ: historial vacío -> deshacer_ultima_accion() avisa y retorna
+    None; Link no se mueve.
     """
-    accion = historial.deshacer_ultima_accion(cronicas)
-
-    # ROBUSTEZ: historial vacío -> None, Link se queda donde está
+    accion = historial.deshacer_ultima_accion(partida["cronicas"])
     if accion is None:
-        return sala_actual
-
-    sala_actual = revertir_accion(accion, sala_actual, mochila, tesoros_recogidos)
+        return
+    revertir_accion(partida, accion)
     if isinstance(accion, dict) and accion.get("tipo") == "Recoger":
         print("     Deshaz de nuevo si quieres volver a la sala anterior.")
-    return sala_actual
 
 
-def accion_ocarina(sala_actual, cronicas, mochila, tesoros_recogidos):
+def accion_ocarina(partida):
     """
-    Opción 5. INTEGRACIÓN de la Guía 5: historial.deshacer_multiples().
-
-    Link toca la Ocarina del Viento para deshacer varias acciones de una vez.
-    deshacer_multiples() hace pop() 'n' veces y devuelve las acciones en el
-    orden en que salieron (de la más reciente a la más antigua). main.py
-    aplica el efecto de cada una en ese mismo orden (LIFO), así que, si se
-    deshacen varios movimientos, Link termina en la sala desde la que hizo
-    el movimiento más antiguo de los deshechos.
-
-    ROBUSTEZ:
-        - Historial vacío: deshacer_multiples() avisa y retorna [], Link no se mueve.
-        - Cantidad inválida (texto, 0, negativos o mayor que el historial):
-          se rechaza con leer_opcion_numerica y no se deshace nada.
-
-    Retorna la sala donde queda Link.
+    Opción 5. historial.deshacer_multiples() (Guía 5): pop() 'n' veces y
+    aplica cada acción en orden LIFO.
+    ROBUSTEZ: historial vacío o cantidad inválida -> mensaje, nada cambia.
     """
+    cronicas = partida["cronicas"]
     if len(cronicas) == 0:
-        historial.deshacer_multiples(cronicas, 1)   # Delega el mensaje de historial vacío
-        return sala_actual
-
+        historial.deshacer_multiples(cronicas, 1)
+        return
     n = leer_opcion_numerica(f"¿Cuántas acciones quieres deshacer? (1 a {len(cronicas)}): ",
                              1, len(cronicas))
     if n is None:
         print("[i] Link baja la Ocarina sin tocar la melodía. Nada cambia.")
-        return sala_actual
-
-    deshechas = historial.deshacer_multiples(cronicas, n)   # pop() x n
-    for accion in deshechas:
-        sala_actual = revertir_accion(accion, sala_actual, mochila, tesoros_recogidos)
-
-    print(f"[🎶] Cuando el remolino se calma, Link está en: {sala_actual}")
-    return sala_actual
+        return
+    for accion in historial.deshacer_multiples(cronicas, n):
+        revertir_accion(partida, accion)
+    print(f"[🎶] Cuando el remolino se calma, Link está en: {partida['sala']}")
 
 
-def accion_usar_objeto(mochila, cronicas):
+def accion_usar_objeto(partida):
     """
-    Opción 3. INTEGRACIÓN del Checkpoint 1: inventario.usar_objeto().
-
-    Muestra los objetos de la bolsa, el jugador elige uno por número y se
-    llama a usar_objeto() (búsqueda lineal O(n) con 'in'). Si el objeto se
-    usó, la acción "Usar" se apila en el historial con append().
-
-    ROBUSTEZ: bolsa vacía, texto, 0, negativos y números fuera de rango se
-    manejan con un mensaje y sin cerrar el programa.
+    Opción 3. inventario.usar_objeto() (Checkpoint 1) + registro en la pila.
+    ROBUSTEZ: bolsa vacía u opción inválida -> mensaje, nada se registra.
     """
+    mochila = partida["mochila"]
     if len(mochila) == 0:
         print("[!] La bolsa de Link está vacía: no hay nada que usar.")
         return
-
     print("\n🎒 ¿Qué objeto quieres usar?")
     for i, objeto in enumerate(mochila, start=1):
         print(f"  {i}) {objeto}")
     opcion_cancelar = len(mochila) + 1
     print(f"  {opcion_cancelar}) Cancelar")
-
     eleccion = leer_opcion_numerica("Elige un objeto: ", 1, opcion_cancelar)
     if eleccion is None or eleccion == opcion_cancelar:
         print("[i] Link guarda sus objetos y sigue adelante.")
         return
-
     objeto = mochila[eleccion - 1]
-    inventario.usar_objeto(mochila, objeto)                    # Checkpoint 1: búsqueda O(n)
-    historial.registrar_accion(cronicas, {"tipo": "Usar",      # Pila: append
-                                          "objeto": objeto})
+    inventario.usar_objeto(mochila, objeto)
+    historial.registrar_accion(partida["cronicas"], {"tipo": "Usar", "objeto": objeto})
 
 
-def accion_explorar(cola_eventos):
+def accion_explorar(partida):
     """
-    Opción 7. INTEGRACIÓN de la Guía 6: eventos.procesar_multiples_eventos().
-
-    Link se queda en la sala y explora a fondo: los siguientes 'n' eventos de
-    la cola llegan a él en orden de llegada (popleft() 'n' veces, FIFO).
-    Antes se muestran los eventos pendientes con mostrar_cola_eventos().
-
-    ROBUSTEZ:
-        - Cola vacía: procesar_multiples_eventos() avisa que Hyrule está en
-          calma y retorna [], sin error.
-        - Cantidad inválida (texto, 0, negativos o mayor que la cola): se
-          rechaza y no se procesa nada.
+    Opción 7. eventos.procesar_multiples_eventos() (Guía 6): 'n' eventos en
+    orden FIFO; cada uno se cuenta en el estado y puede completar misiones.
+    ROBUSTEZ: cola vacía o cantidad inválida -> mensaje, nada se procesa.
     """
-    if len(cola_eventos) == 0:
-        eventos.procesar_multiples_eventos(cola_eventos, 1)   # Delega el mensaje de cola vacía
+    cola = partida["cola"]
+    if len(cola) == 0:
+        eventos.procesar_multiples_eventos(cola, 1)
         return
-
-    eventos.mostrar_cola_eventos(cola_eventos)
-    n = leer_opcion_numerica(f"¿Cuántos eventos quieres enfrentar? (1 a {len(cola_eventos)}): ",
-                             1, len(cola_eventos))
+    eventos.mostrar_cola_eventos(cola)
+    n = leer_opcion_numerica(f"¿Cuántos eventos quieres enfrentar? (1 a {len(cola)}): ", 1, len(cola))
     if n is None:
         print("[i] Link prefiere no tentar a la suerte y sigue en guardia.")
         return
+    for evento in eventos.procesar_multiples_eventos(cola, n):
+        aplicar_evento(partida, evento)
+    revisar_misiones(partida)
 
-    eventos.procesar_multiples_eventos(cola_eventos, n)        # popleft() x n
 
-
-def accion_ver_historial(cronicas):
-    """
-    Opción 6. Muestra la pila de la cima a la base, consulta la última
-    acción sin sacarla (ver_ultima_accion) y resume con contar_acciones_de_tipo
-    (adaptación de la Guía 5).
-    """
+def accion_ver_historial(partida):
+    """Opción 6. Pila de la cima a la base, cima sin sacarla y conteos por tipo."""
+    cronicas = partida["cronicas"]
     historial.mostrar_historial_completo(cronicas)
-    historial.ver_ultima_accion(cronicas)          # Consultar la cima sin sacarla (peek)
+    historial.ver_ultima_accion(cronicas)
     if len(cronicas) > 0:
-        historial.contar_acciones_de_tipo(cronicas, "Moverse")
-        historial.contar_acciones_de_tipo(cronicas, "Recoger")
-        historial.contar_acciones_de_tipo(cronicas, "Usar")
+        for tipo in ("Moverse", "Recoger", "Usar"):
+            historial.contar_acciones_de_tipo(cronicas, tipo)
+
+
+def accion_ruta(partida):
+    """
+    Opción 9. BFS: ruta con MENOS SALTOS desde la sala de Link hasta la sala
+    elegida, respetando las puertas selladas del diccionario.
+
+    - Compara con la ruta por el árbol original (sin atajos) para mostrar
+      que los atajos crean caminos alternativos más cortos.
+    - Si no hay ruta posible, busca la ruta ignorando los sellos y dice qué
+      misión hay que completar para abrir el camino.
+    ROBUSTEZ: sala inválida, la misma sala o ruta inexistente -> mensaje.
+    """
+    destino = elegir_sala(partida, "¿A qué sala quieres llegar? ")
+    if destino is None:
+        print("[i] Ezlo guarda el mapa.")
+        return
+    origen = partida["sala"]
+    if destino == origen:
+        print("[i] Link ya está en esa sala.")
+        return
+
+    bloqueadas = mundo.aristas_bloqueadas(partida["estado"])
+    ruta = partida["grafo"].ruta_mas_corta(origen, destino, bloqueadas)
+
+    if ruta is None:
+        print(f"\n[X] Ahora mismo no hay ruta hacia '{destino}'.")
+        sin_sellos = partida["grafo"].ruta_mas_corta(origen, destino)
+        if sin_sellos is None:
+            print("    Esa sala no está conectada con ninguna puerta.")
+            return
+        for a, b in zip(sin_sellos, sin_sellos[1:]):
+            mision = mundo.motivo_sello(partida["estado"], a, b)
+            if mision:
+                print(f"    La bloquea la puerta {a} <-> {b}: se abre con '{mision}'.")
+        return
+
+    print(f"\n🧭 Ruta más corta (BFS): {len(ruta) - 1} salto(s)")
+    for paso, sala in enumerate(ruta):
+        print(f"    {paso}. {sala}")
+    arbol = partida["grafo_arbol"].ruta_mas_corta(origen, destino)
+    if arbol is not None and len(arbol) > len(ruta):
+        print(f"    ¡Un atajo ahorra {len(arbol) - len(ruta)} salto(s)! "
+              f"Por el árbol original serían {len(arbol) - 1}.")
+
+
+def accion_mapa(partida):
+    """
+    Opción 10. DFS: salas que Link puede alcanzar desde donde está sin cruzar
+    puertas selladas, y ZONAS AISLADAS (componentes conexas del grafo con las
+    puertas selladas cerradas).
+    """
+    bloqueadas = mundo.aristas_bloqueadas(partida["estado"])
+    orden = partida["grafo"].dfs(partida["sala"], bloqueadas)
+    print(f"\n🗺️  Exploración en profundidad (DFS) desde {partida['sala']}:")
+    for sala in orden:
+        datos = mundo.obtener_sala(partida["estado"], sala)
+        marcas = []
+        if datos and datos["visitada"]:
+            marcas.append("visitada")
+        if datos and datos["tesoro"] and not datos["recogido"]:
+            marcas.append(f"tesoro: {datos['tesoro']}")
+        texto = f"  ({', '.join(marcas)})" if marcas else ""
+        print(f"    - {sala}{texto}")
+    print(f"  Alcanzables ahora: {len(orden)} de {partida['grafo'].num_vertices()} salas.")
+
+    aisladas = [zona for zona in partida["grafo"].componentes_conexas(bloqueadas)
+                if partida["sala"] not in zona]
+    if aisladas:
+        print("  Zonas aisladas por puertas selladas:")
+        for zona in aisladas:
+            print(f"    - {', '.join(zona)}")
+    else:
+        print("  No hay zonas aisladas: todo el palacio está conectado.")
+
+
+def accion_salir(partida):
+    """Opción 13. Resumen final de la partida."""
+    info = indicadores(partida)
+    print("\n==================================================")
+    print("  Link guarda la Espada Minish y descansa.")
+    print(f"  Salas descubiertas: {info['salas_visitadas']} de {info['salas_totales']}")
+    print(f"  Misiones completadas: {misiones.contar_completadas(partida['misiones'])}"
+          f" de {misiones.contar_misiones(partida['misiones'])}")
+    print(f"  Rupias: {info['rupias']} | Objetos en la bolsa: {len(partida['mochila'])}")
+    if info["jefe_derrotado"]:
+        print("  ¡Vaati ha sido derrotado! Hyrule vuelve a estar en paz.")
+    else:
+        print("  Vaati sigue acechando... Hyrule espera tu regreso.")
+    print("==================================================")
+
+
+# ----------------------------------------------------------------------
+# Preparación de la partida
+# ----------------------------------------------------------------------
+
+def preparar_partida():
+    """
+    Crea todas las estructuras de la partida y las conecta:
+        1. Mazmorra recursiva (árbol) -> Grafo genérico + 2 atajos (ciclos).
+        2. Diccionario de estado con las salas, tesoros y puertas selladas:
+           la puerta del jefe y los dos atajos empiezan sellados.
+        3. Árbol de misiones; cada sello lo abre una misión.
+        4. Inventario, historial, cola de eventos y cola de turnos (CP1 y CP2).
+    Retorna el diccionario 'partida', o None si la mazmorra no se pudo crear.
+    """
+    mapa = mazmorra.crear_mazmorra(profundidad_maxima=3, limite_salas=15)
+    if not mapa:
+        print("[!] El Palacio de los Vientos no pudo formarse. Fin de la aventura.")
+        return None
+    mazmorra.imprimir_arbol_mazmorra(mapa)
+
+    grafo_arbol = mazmorra.construir_grafo(mapa)          # el árbol tal cual
+    grafo = mazmorra.construir_grafo(mapa)                # el que recibe atajos
+    atajos = mazmorra.agregar_atajos(grafo, cantidad=2)
+    jefe = mazmorra.sala_del_jefe(grafo)
+
+    estado = mundo.crear_estado(grafo.vertices(), mazmorra.tesoros_por_sala(grafo),
+                                mazmorra.SALA_INICIAL)
+    cofres = mundo.contar_cofres(estado, mazmorra.OBJETO_JEFE)
+    arbol = misiones.construir_arbol_misiones(min(3, cofres))
+    nombre_reunir = f"Reunir {min(3, cofres)} tesoros"
+
+    # Puerta del jefe: su única puerta es la que lo une con su sala padre
+    if jefe:
+        padre_jefe = mapa[jefe][0]
+        mundo.sellar_puerta(estado, padre_jefe, jefe, nombre_reunir)
+        misiones.asignar_puerta(arbol, nombre_reunir, mundo.clave_puerta(padre_jefe, jefe))
+
+    for atajo, nombre in zip(atajos, ["Explorar 3 salas", "Vencer a 2 secuaces de Vaati"]):
+        mundo.sellar_puerta(estado, atajo[0], atajo[1], nombre)
+        misiones.asignar_puerta(arbol, nombre, mundo.clave_puerta(*atajo))
+
+    mazmorra.imprimir_grafo_mazmorra(grafo, atajos, estado["puertas_selladas"])
+
+    partida = {
+        "grafo": grafo,
+        "grafo_arbol": grafo_arbol,
+        "jefe": jefe,
+        "estado": estado,
+        "misiones": arbol,
+        "sala": mazmorra.SALA_INICIAL,
+        "mochila": [],
+        "cronicas": [],
+        "cola": eventos.inicializar_cola_eventos([
+            "Un Moblin te bloquea el paso con su lanza",
+            "Encuentras 20 rupias rojas ocultas en una vasija",
+            "Una trampa de pinchos se activa bajo tus pies",
+            "Una bandada de Keese desciende del techo",
+            "Un Octorok dispara rocas desde un charco",
+            "Un Chuchu Rojo brota del suelo y bloquea la puerta",
+            "Una Gran Hada te restaura los corazones",
+            "La risa de Vaati resuena entre los muros",
+        ]),
+        "combatientes": deque(["Link", "Moblin", "Octorok"]),
+    }
+
+    print("\nEzlo te entrega el equipo de un héroe de Hyrule:")
+    for objeto in OBJETOS_INICIALES:
+        inventario.agregar_objeto(partida["mochila"], objeto)
+    return partida
 
 
 # ----------------------------------------------------------------------
@@ -437,106 +640,44 @@ def accion_ver_historial(cronicas):
 
 def main():
     """
-    Punto de entrada del juego.
-
-    1. Prepara la partida: genera la mazmorra con la función recursiva,
-       ubica a Link en la sala inicial y crea el inventario (lista), el
-       historial (pila), la cola de eventos (deque) y la cola de turnos.
-    2. Ejecuta el menú dentro de un ciclo while True hasta que el jugador
-       elige salir. Cada opción llama a las funciones importadas de los
-       módulos; ninguna función se copia dentro de main.py.
-
+    Punto de entrada del juego: prepara la partida y ejecuta el menú dentro
+    de un ciclo while True hasta que el jugador elige salir.
     ROBUSTEZ: toda opción inválida (texto, 0, negativos o fuera de rango)
     muestra un mensaje y reinicia el ciclo con continue.
     """
     mostrar_encabezado()
-
-    # ---------------- SETUP 1: mazmorra recursiva ----------------
-    # crear_mazmorra() llama a la función recursiva generar_mazmorra() y
-    # garantiza profundidad mínima 2 y al menos 7 salas.
-    mapa = mazmorra.crear_mazmorra(profundidad_maxima=3, limite_salas=15)
-    if not mapa:
-        print("[!] El Palacio de los Vientos no pudo formarse. Fin de la aventura.")
+    partida = preparar_partida()
+    if partida is None:
         return
-    mazmorra.imprimir_arbol_mazmorra(mapa)
 
-    # ---------------- SETUP 2: sala inicial ----------------
-    sala_actual = mazmorra.SALA_INICIAL
+    print("\nEzlo te susurra: \"Link, Vaati se oculta tras una puerta sellada por el viento.")
+    print("Completa las misiones del palacio para abrirla.\"")
+    revisar_misiones(partida)        # completa la raíz: Link ya entró al palacio
 
-    # ---------------- SETUP 3: inventario (lista, Checkpoint 1) ----------------
-    mochila_link = []
-    tesoros_recogidos = set()
-    print("\nEzlo te entrega el equipo de un héroe de Hyrule:")
-    for objeto in OBJETOS_INICIALES:
-        inventario.agregar_objeto(mochila_link, objeto)       # Checkpoint 1: append
+    acciones = {
+        OPCION_MOVERSE: accion_moverse,
+        OPCION_INVENTARIO: lambda p: mostrar_inventario(p["mochila"]),
+        OPCION_USAR: accion_usar_objeto,
+        OPCION_DESHACER: accion_deshacer,
+        OPCION_OCARINA: accion_ocarina,
+        OPCION_HISTORIAL: accion_ver_historial,
+        OPCION_EXPLORAR: accion_explorar,
+        OPCION_TURNOS: lambda p: eventos.simular_turnos(p["combatientes"]),
+        OPCION_RUTA: accion_ruta,
+        OPCION_MAPA: accion_mapa,
+        OPCION_MISIONES: lambda p: misiones.mostrar_misiones(p["misiones"], indicadores(p)),
+        OPCION_ESTADO: lambda p: mundo.mostrar_estado(p["estado"]),
+    }
 
-    # ---------------- SETUP 4: historial (pila) ----------------
-    cronicas = []
-
-    # ---------------- SETUP 5: cola de eventos (deque) ----------------
-    cola_eventos = eventos.inicializar_cola_eventos([
-        "Un Moblin te bloquea el paso con su lanza",
-        "Encuentras 20 rupias rojas ocultas en una vasija",
-        "Una trampa de pinchos se activa bajo tus pies",
-        "Una bandada de Keese desciende del techo",
-        "Un Octorok dispara rocas desde un charco",
-        "Un Chuchu Rojo brota del suelo y bloquea la puerta",
-        "Una Gran Hada te restaura los corazones",
-        "La risa de Vaati resuena entre los muros",
-    ])
-
-    # Participantes del sistema de turnos (cola circular, al menos 3)
-    combatientes = deque(["Link", "Moblin", "Octorok"])
-
-    print("\nEzlo te susurra: \"Link, Vaati se oculta en lo más profundo del palacio. ¡Encuéntralo!\"")
-
-    # ---------------- BUCLE PRINCIPAL ----------------
     while True:
-        mostrar_menu(sala_actual)
-
-        # ROBUSTEZ: texto, símbolos, 0, negativos y fuera de rango -> continue
+        mostrar_menu(partida)
         opcion = leer_opcion_numerica("Opción: ", OPCION_MOVERSE, OPCION_SALIR)
         if opcion is None:
             continue
-
-        if opcion == OPCION_MOVERSE:
-            sala_actual = accion_moverse(mapa, sala_actual, cola_eventos,
-                                         cronicas, mochila_link, tesoros_recogidos)
-
-        elif opcion == OPCION_INVENTARIO:
-            mostrar_inventario(mochila_link)
-
-        elif opcion == OPCION_USAR:
-            accion_usar_objeto(mochila_link, cronicas)
-
-        elif opcion == OPCION_DESHACER:
-            sala_actual = accion_deshacer(sala_actual, cronicas,
-                                          mochila_link, tesoros_recogidos)
-
-        elif opcion == OPCION_OCARINA:
-            sala_actual = accion_ocarina(sala_actual, cronicas,
-                                         mochila_link, tesoros_recogidos)
-
-        elif opcion == OPCION_HISTORIAL:
-            accion_ver_historial(cronicas)
-
-        elif opcion == OPCION_EXPLORAR:
-            accion_explorar(cola_eventos)
-
-        elif opcion == OPCION_TURNOS:
-            # Cola de turnos: popleft() para actuar y append() para volver a formarse
-            eventos.simular_turnos(combatientes)
-
-        elif opcion == OPCION_SALIR:
-            print("\n==================================================")
-            print("  Link guarda la Espada Minish y descansa.")
-            print(f"  Objetos en la bolsa: {len(mochila_link)} | Acciones registradas: {len(cronicas)}")
-            if "Elemento del Viento" in mochila_link:
-                print("  ¡Vaati ha sido derrotado! Hyrule vuelve a estar en paz.")
-            else:
-                print("  Vaati sigue acechando... Hyrule espera tu regreso.")
-            print("==================================================")
+        if opcion == OPCION_SALIR:
+            accion_salir(partida)
             break
+        acciones[opcion](partida)
 
 
 if __name__ == "__main__":

@@ -49,6 +49,7 @@ class Nodo:
     """
 
     def __init__(self, nombre):
+        """Crea una misión sin hijos y sin completar. Complejidad: O(1)."""
         self.nombre = nombre
         self.hijos = []
         self.completada = False
@@ -303,6 +304,7 @@ class NodoDecision:
 
     def __init__(self, pregunta=None, clave=None, umbral=None,
                  si=None, no=None, decision=None):
+        """Crea una pregunta (con hijos si/no) o una hoja con decisión. O(1)."""
         self.pregunta = pregunta
         self.clave = clave
         self.umbral = umbral
