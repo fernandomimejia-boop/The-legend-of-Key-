@@ -1,0 +1,1097 @@
+==================================================
+     LA LEYENDA DE ZELDA: EL ASCENSO DE VAATI     
+        Aventura Algorítmica - Checkpoint 3       
+==================================================
+Héroe: Link | Antagonista: Vaati | Región: Hyrule
+
+[🏰] Los vientos de Vaati dan forma al Palacio de los Vientos...
+[🏰] Mazmorra generada: 12 salas, profundidad 3
+
+=============== MAPA DEL PALACIO DE LOS VIENTOS ===============
+🏰 Entrada del Palacio de los Vientos  (nivel 0)
+├── Galería de los Vientos  (nivel 1)
+│   └── Cripta de los Caballeros  (nivel 2)
+│       ├── Puente de las Nubes [JEFE VAATI]  (nivel 3)
+│       └── Bóveda de las Rupias [COFRE: Fragmento de Corazón]  (nivel 3)
+├── Biblioteca Hyliana  (nivel 1)
+│   └── Escalinata Celeste  (nivel 2)
+│       ├── Pasillo de los Ecos [COFRE: Boomerang Mágico]  (nivel 3)
+│       └── Santuario Minish [COFRE: Brazalete de Fuerza]  (nivel 3)
+└── Cámara de las Antorchas  (nivel 1)
+    └── Torre del Remolino  (nivel 2)
+        └── Jardín de los Picori [COFRE: Llave del Jefe]  (nivel 3)
+---------------------------------------------------------------
+Total de salas: 12 | Profundidad real: 3
+  Nivel 0: 1 sala(s)
+  Nivel 1: 3 sala(s)
+  Nivel 2: 3 sala(s)
+  Nivel 3: 5 sala(s)
+Salas marcadas (jefe o cofre): 5
+===============================================================
+
+
+============ GRAFO DEL PALACIO (lista de adyacencia) ============
+  Entrada del Palacio de los Vientos:
+      -> Galería de los Vientos
+      -> Biblioteca Hyliana
+      -> Cámara de las Antorchas
+  Galería de los Vientos:
+      -> Entrada del Palacio de los Vientos
+      -> Cripta de los Caballeros
+  Biblioteca Hyliana:
+      -> Entrada del Palacio de los Vientos
+      -> Escalinata Celeste
+  Cámara de las Antorchas:
+      -> Entrada del Palacio de los Vientos
+      -> Torre del Remolino
+  Cripta de los Caballeros:
+      -> Galería de los Vientos
+      -> Puente de las Nubes [JEFE VAATI] (sellada)
+      -> Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+      -> Pasillo de los Ecos [COFRE: Boomerang Mágico] (atajo) (sellada)
+  Puente de las Nubes [JEFE VAATI]:
+      -> Cripta de los Caballeros (sellada)
+  Bóveda de las Rupias [COFRE: Fragmento de Corazón]:
+      -> Cripta de los Caballeros
+      -> Jardín de los Picori [COFRE: Llave del Jefe] (atajo) (sellada)
+  Escalinata Celeste:
+      -> Biblioteca Hyliana
+      -> Pasillo de los Ecos [COFRE: Boomerang Mágico]
+      -> Santuario Minish [COFRE: Brazalete de Fuerza]
+  Pasillo de los Ecos [COFRE: Boomerang Mágico]:
+      -> Escalinata Celeste
+      -> Cripta de los Caballeros (atajo) (sellada)
+  Santuario Minish [COFRE: Brazalete de Fuerza]:
+      -> Escalinata Celeste
+  Torre del Remolino:
+      -> Cámara de las Antorchas
+      -> Jardín de los Picori [COFRE: Llave del Jefe]
+  Jardín de los Picori [COFRE: Llave del Jefe]:
+      -> Torre del Remolino
+      -> Bóveda de las Rupias [COFRE: Fragmento de Corazón] (atajo) (sellada)
+  Vértices: 12 | Aristas: 13 | Atajos que forman ciclos: 2
+=================================================================
+
+[🗺️ ] El destino de Hyrule está escrito: 8 evento(s) aguardan a Link.
+
+Ezlo te entrega el equipo de un héroe de Hyrule:
+[*] Has obtenido: Espada Minish
+[*] Has obtenido: Pluma de Roc
+
+Ezlo te susurra: "Link, Vaati se oculta tras una puerta sellada por el viento.
+Completa las misiones del palacio para abrirla."
+
+🏆 ¡Misión completada: Entrar al Palacio de los Vientos!
+   Nuevas misiones disponibles: Explorar 3 salas, Abrir el primer cofre, Vencer a 2 secuaces de Vaati
+
+--------------------------------------------------
+📍 Link está en: Entrada del Palacio de los Vientos
+💎 Rupias: 0
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: abc
+[!] 'abc' no es una opción válida. Las runas de Hyrule solo aceptan números del 1 al 13.
+
+--------------------------------------------------
+📍 Link está en: Entrada del Palacio de los Vientos
+💎 Rupias: 0
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 0
+[!] Opción fuera de rango. Elige un número del 1 al 13.
+
+--------------------------------------------------
+📍 Link está en: Entrada del Palacio de los Vientos
+💎 Rupias: 0
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: -1
+[!] Opción fuera de rango. Elige un número del 1 al 13.
+
+--------------------------------------------------
+📍 Link está en: Entrada del Palacio de los Vientos
+💎 Rupias: 0
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 99
+[!] Opción fuera de rango. Elige un número del 1 al 13.
+
+--------------------------------------------------
+📍 Link está en: Entrada del Palacio de los Vientos
+💎 Rupias: 0
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 4
+[!] Las arenas del tiempo están quietas: no hay movimientos que deshacer. El historial está vacío.
+
+--------------------------------------------------
+📍 Link está en: Entrada del Palacio de los Vientos
+💎 Rupias: 0
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 5
+[!] Tocas la Ocarina del Viento, pero no hay acciones que deshacer: el historial está vacío.
+
+--------------------------------------------------
+📍 Link está en: Entrada del Palacio de los Vientos
+💎 Rupias: 0
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 9
+
+   1) Entrada del Palacio de los Vientos  <- Link está aquí
+   2) Galería de los Vientos
+   3) Biblioteca Hyliana
+   4) Cámara de las Antorchas
+   5) Cripta de los Caballeros
+   6) Puente de las Nubes [JEFE VAATI]
+   7) Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+   8) Escalinata Celeste
+   9) Pasillo de los Ecos [COFRE: Boomerang Mágico]
+  10) Santuario Minish [COFRE: Brazalete de Fuerza]
+  11) Torre del Remolino
+  12) Jardín de los Picori [COFRE: Llave del Jefe]
+¿A qué sala quieres llegar? 6
+
+[X] Ahora mismo no hay ruta hacia 'Puente de las Nubes [JEFE VAATI]'.
+    La bloquea la puerta Cripta de los Caballeros <-> Puente de las Nubes [JEFE VAATI]: se abre con 'Reunir 3 tesoros'.
+
+--------------------------------------------------
+📍 Link está en: Entrada del Palacio de los Vientos
+💎 Rupias: 0
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 9
+
+   1) Entrada del Palacio de los Vientos  <- Link está aquí
+   2) Galería de los Vientos
+   3) Biblioteca Hyliana
+   4) Cámara de las Antorchas
+   5) Cripta de los Caballeros
+   6) Puente de las Nubes [JEFE VAATI]
+   7) Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+   8) Escalinata Celeste
+   9) Pasillo de los Ecos [COFRE: Boomerang Mágico]
+  10) Santuario Minish [COFRE: Brazalete de Fuerza]
+  11) Torre del Remolino
+  12) Jardín de los Picori [COFRE: Llave del Jefe]
+¿A qué sala quieres llegar? abc
+[!] 'abc' no es una opción válida. Las runas de Hyrule solo aceptan números del 1 al 12.
+[i] Ezlo guarda el mapa.
+
+--------------------------------------------------
+📍 Link está en: Entrada del Palacio de los Vientos
+💎 Rupias: 0
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 10
+
+🗺️  Exploración en profundidad (DFS) desde Entrada del Palacio de los Vientos:
+    - Entrada del Palacio de los Vientos  (visitada)
+    - Galería de los Vientos
+    - Cripta de los Caballeros
+    - Bóveda de las Rupias [COFRE: Fragmento de Corazón]  (tesoro: Fragmento de Corazón)
+    - Biblioteca Hyliana
+    - Escalinata Celeste
+    - Pasillo de los Ecos [COFRE: Boomerang Mágico]  (tesoro: Boomerang Mágico)
+    - Santuario Minish [COFRE: Brazalete de Fuerza]  (tesoro: Brazalete de Fuerza)
+    - Cámara de las Antorchas
+    - Torre del Remolino
+    - Jardín de los Picori [COFRE: Llave del Jefe]  (tesoro: Llave del Jefe)
+  Alcanzables ahora: 11 de 12 salas.
+  Zonas aisladas por puertas selladas:
+    - Puente de las Nubes [JEFE VAATI]
+
+--------------------------------------------------
+📍 Link está en: Entrada del Palacio de los Vientos
+💎 Rupias: 0
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 1
+
+🚪 Puertas de la sala:
+  1) Galería de los Vientos
+  2) Biblioteca Hyliana
+  3) Cámara de las Antorchas
+  4) Quedarse en esta sala
+Elige una puerta: 1
+[📜] El Libro de Crónicas de Hyrule registra: Moverse: de 'Entrada del Palacio de los Vientos' a 'Galería de los Vientos'
+
+🏃 Link se mueve a: Galería de los Vientos
+[Evento] ⚔️  ¡Un secuaz de Vaati aparece! Un Moblin te bloquea el paso con su lanza. Desenvainas la Espada Minish. (quedan 7 evento(s))
+   Link vence al enemigo. Secuaces vencidos: 1
+   🗺️  Sala nueva descubierta (2 de 12).
+
+--------------------------------------------------
+📍 Link está en: Galería de los Vientos
+💎 Rupias: 0
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 1
+
+🚪 Puertas de la sala:
+  1) Entrada del Palacio de los Vientos  (visitada)
+  2) Cripta de los Caballeros
+  3) Quedarse en esta sala
+Elige una puerta: 2
+[📜] El Libro de Crónicas de Hyrule registra: Moverse: de 'Galería de los Vientos' a 'Cripta de los Caballeros'
+
+🏃 Link se mueve a: Cripta de los Caballeros
+[Evento] 💎 ¡Tintineo de rupias! Encuentras 20 rupias rojas ocultas en una vasija. (quedan 6 evento(s))
+   +20 rupias (total: 20)
+   🗺️  Sala nueva descubierta (3 de 12).
+
+🏆 ¡Misión completada: Explorar 3 salas!
+   +10 rupias (total: 30)
+   🌬️  El viento de Vaati se disipa: se abre la puerta Cripta de los Caballeros <-> Pasillo de los Ecos [COFRE: Boomerang Mágico].
+   Nuevas misiones disponibles: Cartografiar 6 salas
+
+--------------------------------------------------
+📍 Link está en: Cripta de los Caballeros
+💎 Rupias: 30
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 1
+
+🚪 Puertas de la sala:
+  1) Galería de los Vientos  (visitada)
+  2) Puente de las Nubes [JEFE VAATI]  (sellada: se abre con 'Reunir 3 tesoros')
+  3) Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+  4) Pasillo de los Ecos [COFRE: Boomerang Mágico]
+  5) Quedarse en esta sala
+Elige una puerta: 0
+[!] Opción fuera de rango. Elige un número del 1 al 5.
+[i] Link duda frente a las puertas y se queda donde está.
+
+--------------------------------------------------
+📍 Link está en: Cripta de los Caballeros
+💎 Rupias: 30
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 1
+
+🚪 Puertas de la sala:
+  1) Galería de los Vientos  (visitada)
+  2) Puente de las Nubes [JEFE VAATI]  (sellada: se abre con 'Reunir 3 tesoros')
+  3) Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+  4) Pasillo de los Ecos [COFRE: Boomerang Mágico]
+  5) Quedarse en esta sala
+Elige una puerta: 2
+[X] Un muro de viento sella la puerta hacia 'Puente de las Nubes [JEFE VAATI]'.
+    Ezlo: "Se abrirá cuando completes la misión 'Reunir 3 tesoros'."
+
+--------------------------------------------------
+📍 Link está en: Cripta de los Caballeros
+💎 Rupias: 30
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 1
+
+🚪 Puertas de la sala:
+  1) Galería de los Vientos  (visitada)
+  2) Puente de las Nubes [JEFE VAATI]  (sellada: se abre con 'Reunir 3 tesoros')
+  3) Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+  4) Pasillo de los Ecos [COFRE: Boomerang Mágico]
+  5) Quedarse en esta sala
+Elige una puerta: 3
+[📜] El Libro de Crónicas de Hyrule registra: Moverse: de 'Cripta de los Caballeros' a 'Bóveda de las Rupias [COFRE: Fragmento de Corazón]'
+
+🏃 Link se mueve a: Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+[Evento] ⚠️  ¡Cuidado, Link! Una trampa de pinchos se activa bajo tus pies. Saltas justo a tiempo con la Pluma de Roc. (quedan 5 evento(s))
+   🗺️  Sala nueva descubierta (4 de 12).
+
+🎁 ¡Da-da-da-daaa! Link abre un cofre antiguo.
+[*] Has obtenido: Fragmento de Corazón
+[📜] El Libro de Crónicas de Hyrule registra: Recoger: 'Fragmento de Corazón' en 'Bóveda de las Rupias [COFRE: Fragmento de Corazón]'
+
+🏆 ¡Misión completada: Abrir el primer cofre!
+   +15 rupias (total: 45)
+   Nuevas misiones disponibles: Reunir 3 tesoros
+
+--------------------------------------------------
+📍 Link está en: Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+💎 Rupias: 45
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 4
+[⏳] El tiempo retrocede en Hyrule... Deshaces: Recoger: 'Fragmento de Corazón' en 'Bóveda de las Rupias [COFRE: Fragmento de Corazón]'
+[*] Has soltado: Fragmento de Corazón
+[⏪] El Fragmento de Corazón regresa a su cofre. Link sigue en: Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+     (Las misiones ya completadas y sus recompensas se conservan.)
+     Deshaz de nuevo si quieres volver a la sala anterior.
+
+--------------------------------------------------
+📍 Link está en: Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+💎 Rupias: 45
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 4
+[⏳] El tiempo retrocede en Hyrule... Deshaces: Moverse: de 'Cripta de los Caballeros' a 'Bóveda de las Rupias [COFRE: Fragmento de Corazón]'
+[⏪] Un remolino arrastra a Link de vuelta a: Cripta de los Caballeros
+     (El evento ya ocurrió y la sala sigue descubierta en el mapa.)
+
+--------------------------------------------------
+📍 Link está en: Cripta de los Caballeros
+💎 Rupias: 45
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 1
+
+🚪 Puertas de la sala:
+  1) Galería de los Vientos  (visitada)
+  2) Puente de las Nubes [JEFE VAATI]  (sellada: se abre con 'Reunir 3 tesoros')
+  3) Bóveda de las Rupias [COFRE: Fragmento de Corazón]  (visitada)
+  4) Pasillo de los Ecos [COFRE: Boomerang Mágico]
+  5) Quedarse en esta sala
+Elige una puerta: 3
+[📜] El Libro de Crónicas de Hyrule registra: Moverse: de 'Cripta de los Caballeros' a 'Bóveda de las Rupias [COFRE: Fragmento de Corazón]'
+
+🏃 Link se mueve a: Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+[Evento] ⚔️  ¡Un secuaz de Vaati aparece! Una bandada de Keese desciende del techo. Desenvainas la Espada Minish. (quedan 4 evento(s))
+   Link vence al enemigo. Secuaces vencidos: 2
+
+🎁 ¡Da-da-da-daaa! Link abre un cofre antiguo.
+[*] Has obtenido: Fragmento de Corazón
+[📜] El Libro de Crónicas de Hyrule registra: Recoger: 'Fragmento de Corazón' en 'Bóveda de las Rupias [COFRE: Fragmento de Corazón]'
+
+🏆 ¡Misión completada: Vencer a 2 secuaces de Vaati!
+   +20 rupias (total: 65)
+   🌬️  El viento de Vaati se disipa: se abre la puerta Bóveda de las Rupias [COFRE: Fragmento de Corazón] <-> Jardín de los Picori [COFRE: Llave del Jefe].
+   Nuevas misiones disponibles: Recibir la bendición de la Gran Hada
+
+--------------------------------------------------
+📍 Link está en: Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+💎 Rupias: 65
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 1
+
+🚪 Puertas de la sala:
+  1) Cripta de los Caballeros  (visitada)
+  2) Jardín de los Picori [COFRE: Llave del Jefe]
+  3) Quedarse en esta sala
+Elige una puerta: 2
+[📜] El Libro de Crónicas de Hyrule registra: Moverse: de 'Bóveda de las Rupias [COFRE: Fragmento de Corazón]' a 'Jardín de los Picori [COFRE: Llave del Jefe]'
+
+🏃 Link se mueve a: Jardín de los Picori [COFRE: Llave del Jefe]
+[Evento] ⚔️  ¡Un secuaz de Vaati aparece! Un Octorok dispara rocas desde un charco. Desenvainas la Espada Minish. (quedan 3 evento(s))
+   Link vence al enemigo. Secuaces vencidos: 3
+   🗺️  Sala nueva descubierta (5 de 12).
+
+🎁 ¡Da-da-da-daaa! Link abre un cofre antiguo.
+[*] Has obtenido: Llave del Jefe
+[📜] El Libro de Crónicas de Hyrule registra: Recoger: 'Llave del Jefe' en 'Jardín de los Picori [COFRE: Llave del Jefe]'
+
+--------------------------------------------------
+📍 Link está en: Jardín de los Picori [COFRE: Llave del Jefe]
+💎 Rupias: 65
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 9
+
+   1) Entrada del Palacio de los Vientos
+   2) Galería de los Vientos
+   3) Biblioteca Hyliana
+   4) Cámara de las Antorchas
+   5) Cripta de los Caballeros
+   6) Puente de las Nubes [JEFE VAATI]
+   7) Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+   8) Escalinata Celeste
+   9) Pasillo de los Ecos [COFRE: Boomerang Mágico]
+  10) Santuario Minish [COFRE: Brazalete de Fuerza]
+  11) Torre del Remolino
+  12) Jardín de los Picori [COFRE: Llave del Jefe]  <- Link está aquí
+¿A qué sala quieres llegar? 9
+
+🧭 Ruta más corta (BFS): 3 salto(s)
+    0. Jardín de los Picori [COFRE: Llave del Jefe]
+    1. Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+    2. Cripta de los Caballeros
+    3. Pasillo de los Ecos [COFRE: Boomerang Mágico]
+    ¡Un atajo ahorra 3 salto(s)! Por el árbol original serían 6.
+
+--------------------------------------------------
+📍 Link está en: Jardín de los Picori [COFRE: Llave del Jefe]
+💎 Rupias: 65
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 1
+
+🚪 Puertas de la sala:
+  1) Torre del Remolino
+  2) Bóveda de las Rupias [COFRE: Fragmento de Corazón]  (visitada)
+  3) Quedarse en esta sala
+Elige una puerta: 2
+[📜] El Libro de Crónicas de Hyrule registra: Moverse: de 'Jardín de los Picori [COFRE: Llave del Jefe]' a 'Bóveda de las Rupias [COFRE: Fragmento de Corazón]'
+
+🏃 Link se mueve a: Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+[Evento] ⚔️  ¡Un secuaz de Vaati aparece! Un Chuchu Rojo brota del suelo y bloquea la puerta. Desenvainas la Espada Minish. (quedan 2 evento(s))
+   Link vence al enemigo. Secuaces vencidos: 4
+[i] El cofre de esta sala ya está abierto. Aquí no queda nada más.
+
+--------------------------------------------------
+📍 Link está en: Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+💎 Rupias: 65
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 1
+
+🚪 Puertas de la sala:
+  1) Cripta de los Caballeros  (visitada)
+  2) Jardín de los Picori [COFRE: Llave del Jefe]  (visitada)
+  3) Quedarse en esta sala
+Elige una puerta: 1
+[📜] El Libro de Crónicas de Hyrule registra: Moverse: de 'Bóveda de las Rupias [COFRE: Fragmento de Corazón]' a 'Cripta de los Caballeros'
+
+🏃 Link se mueve a: Cripta de los Caballeros
+[Evento] ✨ Una luz cálida te rodea. Una Gran Hada te restaura los corazones. (quedan 1 evento(s))
+
+🏆 ¡Misión completada: Recibir la bendición de la Gran Hada!
+   +10 rupias (total: 75)
+
+--------------------------------------------------
+📍 Link está en: Cripta de los Caballeros
+💎 Rupias: 75
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 1
+
+🚪 Puertas de la sala:
+  1) Galería de los Vientos  (visitada)
+  2) Puente de las Nubes [JEFE VAATI]  (sellada: se abre con 'Reunir 3 tesoros')
+  3) Bóveda de las Rupias [COFRE: Fragmento de Corazón]  (visitada)
+  4) Pasillo de los Ecos [COFRE: Boomerang Mágico]
+  5) Quedarse en esta sala
+Elige una puerta: 4
+[📜] El Libro de Crónicas de Hyrule registra: Moverse: de 'Cripta de los Caballeros' a 'Pasillo de los Ecos [COFRE: Boomerang Mágico]'
+
+🏃 Link se mueve a: Pasillo de los Ecos [COFRE: Boomerang Mágico]
+[Evento] 🌀 Un viento oscuro recorre la sala... La risa de Vaati resuena entre los muros. (quedan 0 evento(s))
+   🗺️  Sala nueva descubierta (6 de 12).
+
+🎁 ¡Da-da-da-daaa! Link abre un cofre antiguo.
+[*] Has obtenido: Boomerang Mágico
+[📜] El Libro de Crónicas de Hyrule registra: Recoger: 'Boomerang Mágico' en 'Pasillo de los Ecos [COFRE: Boomerang Mágico]'
+
+🏆 ¡Misión completada: Cartografiar 6 salas!
+   +20 rupias (total: 95)
+
+🏆 ¡Misión completada: Reunir 3 tesoros!
+   +30 rupias (total: 125)
+   🌬️  El viento de Vaati se disipa: se abre la puerta Cripta de los Caballeros <-> Puente de las Nubes [JEFE VAATI].
+   Nuevas misiones disponibles: Derrotar a Vaati
+
+--------------------------------------------------
+📍 Link está en: Pasillo de los Ecos [COFRE: Boomerang Mágico]
+💎 Rupias: 125
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 1
+
+🚪 Puertas de la sala:
+  1) Escalinata Celeste
+  2) Cripta de los Caballeros  (visitada)
+  3) Quedarse en esta sala
+Elige una puerta: 2
+[📜] El Libro de Crónicas de Hyrule registra: Moverse: de 'Pasillo de los Ecos [COFRE: Boomerang Mágico]' a 'Cripta de los Caballeros'
+
+🏃 Link se mueve a: Cripta de los Caballeros
+[🍃] La sala está despejada. Solo se escucha el viento de Hyrule... No quedan eventos por procesar.
+
+--------------------------------------------------
+📍 Link está en: Cripta de los Caballeros
+💎 Rupias: 125
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 1
+
+🚪 Puertas de la sala:
+  1) Galería de los Vientos  (visitada)
+  2) Puente de las Nubes [JEFE VAATI]
+  3) Bóveda de las Rupias [COFRE: Fragmento de Corazón]  (visitada)
+  4) Pasillo de los Ecos [COFRE: Boomerang Mágico]  (visitada)
+  5) Quedarse en esta sala
+Elige una puerta: 2
+[📜] El Libro de Crónicas de Hyrule registra: Moverse: de 'Cripta de los Caballeros' a 'Puente de las Nubes [JEFE VAATI]'
+
+🏃 Link se mueve a: Puente de las Nubes [JEFE VAATI]
+[🍃] La sala está despejada. Solo se escucha el viento de Hyrule... No quedan eventos por procesar.
+   🗺️  Sala nueva descubierta (7 de 12).
+
+🌀 ¡Vaati aparece envuelto en un torbellino oscuro!
+⚔️  Link resiste el viento y lo derrota con la Espada Minish.
+✨ Vaati deja caer el Elemento del Viento.
+[*] Has obtenido: Elemento del Viento
+[📜] El Libro de Crónicas de Hyrule registra: Recoger: 'Elemento del Viento' en 'Puente de las Nubes [JEFE VAATI]'
+
+🏆 ¡Misión completada: Derrotar a Vaati!
+   +100 rupias (total: 225)
+
+✨ ¡Vaati ha sido derrotado! El Palacio de los Vientos vuelve a la calma.
+   Hyrule está a salvo. Puedes seguir explorando o salir del juego.
+
+--------------------------------------------------
+📍 Link está en: Puente de las Nubes [JEFE VAATI]
+💎 Rupias: 225
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 11
+
+=============== MISIONES DEL PALACIO ===============
+  [completada] Entrar al Palacio de los Vientos
+      [completada] Explorar 3 salas (+10 rupias)
+          [completada] Cartografiar 6 salas (+20 rupias)
+      [completada] Abrir el primer cofre (+15 rupias)
+          [completada] Reunir 3 tesoros (+30 rupias)
+              [completada] Derrotar a Vaati (+100 rupias)
+      [completada] Vencer a 2 secuaces de Vaati (+20 rupias)
+          [completada] Recibir la bendición de la Gran Hada (+10 rupias)
+
+  Completadas: 8 de 8 | Altura del árbol: 3
+
+  Disponibles por etapa (recorrido por niveles):
+    Ninguna: ¡Link completó todas las misiones!
+
+  Rupias por rama (postorden):
+    Explorar 3 salas: ganadas 30, pendientes 0
+    Abrir el primer cofre: ganadas 145, pendientes 0
+    Vencer a 2 secuaces de Vaati: ganadas 30, pendientes 0
+====================================================
+
+--------------------------------------------------
+📍 Link está en: Puente de las Nubes [JEFE VAATI]
+💎 Rupias: 225
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 12
+
+=============== ESTADO DEL MUNDO ===============
+  Salas visitadas:   7 de 12
+  Tesoros recogidos: 4 | En sus cofres: 1
+  Enemigos vencidos: 4
+  Rupias:            225
+  Puertas selladas:  ninguna, el viento de Vaati se disipó.
+  Eventos vividos:   enemigo: 4, rupias: 1, trampa: 1, hada: 1, vaati: 1
+================================================
+
+--------------------------------------------------
+📍 Link está en: Puente de las Nubes [JEFE VAATI]
+💎 Rupias: 225
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 8
+
+============ RONDA DE COMBATE ============
+Orden de la cola: Link -> Moblin -> Octorok
+  Turno 1: Link blande la Espada Minish con un giro de espada.
+  Turno 2: Moblin embiste con su lanza.
+  Turno 3: Octorok escupe una roca.
+Fin de la ronda. Próximo en actuar: Link
+==========================================
+
+
+--------------------------------------------------
+📍 Link está en: Puente de las Nubes [JEFE VAATI]
+💎 Rupias: 225
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 6
+
+========== LIBRO DE CRÓNICAS DE HYRULE ==========
+  1. Recoger: 'Elemento del Viento' en 'Puente de las Nubes [JEFE VAATI]'  <- cima (más reciente)
+  2. Moverse: de 'Cripta de los Caballeros' a 'Puente de las Nubes [JEFE VAATI]'
+  3. Moverse: de 'Pasillo de los Ecos [COFRE: Boomerang Mágico]' a 'Cripta de los Caballeros'
+  4. Recoger: 'Boomerang Mágico' en 'Pasillo de los Ecos [COFRE: Boomerang Mágico]'
+  5. Moverse: de 'Cripta de los Caballeros' a 'Pasillo de los Ecos [COFRE: Boomerang Mágico]'
+  6. Moverse: de 'Bóveda de las Rupias [COFRE: Fragmento de Corazón]' a 'Cripta de los Caballeros'
+  7. Moverse: de 'Jardín de los Picori [COFRE: Llave del Jefe]' a 'Bóveda de las Rupias [COFRE: Fragmento de Corazón]'
+  8. Recoger: 'Llave del Jefe' en 'Jardín de los Picori [COFRE: Llave del Jefe]'
+  9. Moverse: de 'Bóveda de las Rupias [COFRE: Fragmento de Corazón]' a 'Jardín de los Picori [COFRE: Llave del Jefe]'
+  10. Recoger: 'Fragmento de Corazón' en 'Bóveda de las Rupias [COFRE: Fragmento de Corazón]'
+  11. Moverse: de 'Cripta de los Caballeros' a 'Bóveda de las Rupias [COFRE: Fragmento de Corazón]'
+  12. Moverse: de 'Galería de los Vientos' a 'Cripta de los Caballeros'
+  13. Moverse: de 'Entrada del Palacio de los Vientos' a 'Galería de los Vientos'  <- base (más antigua)
+  Total de acciones registradas: 13
+=================================================
+
+[🔎] Última acción de Link: Recoger: 'Elemento del Viento' en 'Puente de las Nubes [JEFE VAATI]'
+[📊] Según las crónicas, Link ha realizado 'Moverse' 9 vez/veces.
+[📊] Según las crónicas, Link ha realizado 'Recoger' 4 vez/veces.
+[📊] Según las crónicas, Link ha realizado 'Usar' 0 vez/veces.
+
+--------------------------------------------------
+📍 Link está en: Puente de las Nubes [JEFE VAATI]
+💎 Rupias: 225
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 5
+¿Cuántas acciones quieres deshacer? (1 a 13): 2
+[🎶] Link toca la Ocarina del Viento... ¡un remolino deshace 2 acción(es)!
+     - Deshecho: Recoger: 'Elemento del Viento' en 'Puente de las Nubes [JEFE VAATI]'
+     - Deshecho: Moverse: de 'Cripta de los Caballeros' a 'Puente de las Nubes [JEFE VAATI]'
+[*] Has soltado: Elemento del Viento
+[⏪] El Elemento del Viento regresa a su cofre. Link sigue en: Puente de las Nubes [JEFE VAATI]
+     (Las misiones ya completadas y sus recompensas se conservan.)
+[⏪] Un remolino arrastra a Link de vuelta a: Cripta de los Caballeros
+     (El evento ya ocurrió y la sala sigue descubierta en el mapa.)
+[🎶] Cuando el remolino se calma, Link está en: Cripta de los Caballeros
+
+--------------------------------------------------
+📍 Link está en: Cripta de los Caballeros
+💎 Rupias: 225
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 7
+[🍃] No hay eventos que procesar: Hyrule está en calma por ahora.
+
+--------------------------------------------------
+📍 Link está en: Cripta de los Caballeros
+💎 Rupias: 225
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 3
+
+🎒 ¿Qué objeto quieres usar?
+  1) Espada Minish
+  2) Pluma de Roc
+  3) Fragmento de Corazón
+  4) Llave del Jefe
+  5) Boomerang Mágico
+  6) Cancelar
+Elige un objeto: 1
+[*] Has usado: Espada Minish. Ezlo exclama: ¡El poder de los Picori fluye por la Espada Minish!
+[📜] El Libro de Crónicas de Hyrule registra: Usar: 'Espada Minish'
+
+--------------------------------------------------
+📍 Link está en: Cripta de los Caballeros
+💎 Rupias: 225
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 10
+
+🗺️  Exploración en profundidad (DFS) desde Cripta de los Caballeros:
+    - Cripta de los Caballeros  (visitada)
+    - Galería de los Vientos  (visitada)
+    - Entrada del Palacio de los Vientos  (visitada)
+    - Biblioteca Hyliana
+    - Escalinata Celeste
+    - Pasillo de los Ecos [COFRE: Boomerang Mágico]  (visitada)
+    - Santuario Minish [COFRE: Brazalete de Fuerza]  (tesoro: Brazalete de Fuerza)
+    - Cámara de las Antorchas
+    - Torre del Remolino
+    - Jardín de los Picori [COFRE: Llave del Jefe]  (visitada)
+    - Bóveda de las Rupias [COFRE: Fragmento de Corazón]  (visitada)
+    - Puente de las Nubes [JEFE VAATI]  (visitada, tesoro: Elemento del Viento)
+  Alcanzables ahora: 12 de 12 salas.
+  No hay zonas aisladas: todo el palacio está conectado.
+
+--------------------------------------------------
+📍 Link está en: Cripta de los Caballeros
+💎 Rupias: 225
+--------------------------------------------------
+ 1. Moverse a otra sala
+ 2. Ver inventario
+ 3. Usar un objeto
+ 4. Deshacer última acción
+ 5. Tocar la Ocarina del Viento (deshacer varias acciones)
+ 6. Ver historial completo
+ 7. Explorar la sala (resolver varios eventos)
+ 8. Simular turnos de batalla
+ 9. Buscar la ruta más corta a una sala (BFS)
+10. Ver salas alcanzables y zonas aisladas (DFS)
+11. Ver árbol de misiones
+12. Ver estado del mundo
+13. Salir del juego
+Opción: 13
+
+==================================================
+  Link guarda la Espada Minish y descansa.
+  Salas descubiertas: 7 de 12
+  Misiones completadas: 8 de 8
+  Rupias: 225 | Objetos en la bolsa: 5
+  ¡Vaati ha sido derrotado! Hyrule vuelve a estar en paz.
+==================================================

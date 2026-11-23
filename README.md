@@ -1,63 +1,396 @@
 # La Leyenda de Zelda: El Ascenso de Vaati
-### Aventura Algorítmica · Checkpoint 2: Pilas, Colas y Recursividad
+### Aventura Algorítmica · Checkpoint 3: Mapa como grafo, árbol de misiones y diccionario de estados
 
-> Link debe adentrarse en el **Palacio de los Vientos**, una mazmorra que cambia de forma en cada partida, enfrentar a los secuaces de Vaati en orden de llegada y usar el poder del tiempo para deshacer sus pasos cuando el camino se vuelve peligroso.
-
----
-
-## Aportes del equipo
-
-* **Alejandro Esperanza:** Diseñó e implementó `historial.py` (pila con `append`/`pop`), incluidas las adaptaciones de la Guía 5 `deshacer_multiples` y `contar_acciones_de_tipo`, y la validación del historial vacío.
-* **Jonathan Delgado:** Implementó `eventos.py` con `collections.deque`: la cola de eventos del mapa, el sistema de turnos circular (`simular_turnos`) y `procesar_multiples_eventos`, con sus casos límite.
-* **Fernando Mejía:** Desarrolló `mazmorra.py`: la función recursiva `generar_mazmorra`, el marcado de salas profundas, la ramificación variable, el cálculo de profundidad real, el conteo por nivel y la impresión del árbol.
-* **Arturo Guardado:** Integró los módulos en `main.py` (menú, backtracking, recolección de tesoros), validó todas las entradas del usuario, ejecutó las pruebas de casos límite y redactó este README junto con la evidencia de ejecución.
+> Link entra al **Palacio de los Vientos**, una mazmorra que cambia en cada partida. Vaati se esconde tras una puerta sellada por el viento: para abrirla, Link debe completar las misiones del palacio, descubrir salas, abrir cofres y vencer a sus secuaces. Cada misión cumplida abre atajos que cambian las rutas del mapa.
 
 ---
 
 ## Cómo ejecutar el juego
 
-**Requisitos:** Python 3.8 o superior. No se necesitan librerías externas (`collections` y `random` son parte de la biblioteca estándar).
+**Requisitos:** Python 3.8 o superior. No hay que instalar nada: `collections` y `random` vienen con Python.
 
 ```bash
+git clone https://github.com/fernandomimejia-boop/The-legend-of-Key-.git
+cd The-legend-of-Key-
 python main.py
 ```
 
-Cada módulo también puede ejecutarse por separado (`python historial.py`, `python eventos.py`, `python mazmorra.py`) para ver una demostración de sus funciones y casos límite.
+Cada módulo también se puede ejecutar solo para ver una demostración de sus funciones y casos límite: `python grafo.py`, `python estado.py`, `python misiones.py`, `python mazmorra.py`, `python historial.py`, `python eventos.py`.
 
-### Estructura del proyecto (Guía 1)
+### Estructura del proyecto
 
 ```
 Aventura-Algoritmica/
-├── main.py          # Archivo central: menú, bucle de juego e integración
-├── inventario.py    # Checkpoint 1: inventario con listas
-├── historial.py     # Pila (LIFO): historial de acciones y deshacer
-├── eventos.py       # Cola (FIFO con deque): eventos del mapa y turnos
-├── mazmorra.py      # Recursividad: generación del Palacio de los Vientos
-├── arboles.py       # Exposición de árboles: misiones, decisión del Moblin y torneo
-├── README.md
-└── docs/
-    ├── diagrama_flujo_usar_objeto.png
-    ├── pseudocodigo_usar_objeto.txt
-    └── evidencia_partida.txt   # Texto de la consola de una partida completa
+├── main.py          # Archivo central: menú, partida e integración de todas las estructuras
+├── grafo.py         # CP3 · Grafo genérico (lista de adyacencia) con BFS y DFS
+├── misiones.py      # CP3 · Árbol de misiones con recorridos preorden, por niveles y postorden
+├── estado.py        # CP3 · Diccionario con el estado del mundo
+├── mazmorra.py      # CP2 · Mazmorra recursiva + (CP3) conversión a grafo con atajos
+├── historial.py     # CP2 · Pila: historial de acciones y deshacer
+├── eventos.py       # CP2 · Cola (deque): eventos del mapa y turnos de combate
+├── inventario.py    # CP1 · Lista: inventario de Link
+├── exposicion/
+│   └── arboles.py   # Exposición de árboles (prototipo del árbol de misiones)
+├── docs/
+│   ├── evidencia_checkpoint3.txt   # Partida completa del Checkpoint 3
+│   ├── evidencia_checkpoint2.txt   # Partida del Checkpoint 2
+│   ├── diagrama_flujo_usar_objeto.png
+│   └── pseudocodigo_usar_objeto.txt
+└── README.md
 ```
 
-Las funciones no se copian en `main.py`: se importan desde cada módulo, y cada una lleva su docstring.
+Las funciones no se copian en `main.py`: se importan desde cada módulo, y todas llevan su docstring.
 
-### Base del Checkpoint 1
+---
 
-El inventario con listas sigue funcionando y sus tres funciones se usan dentro de la partida:
+## Funcionalidades del juego hasta ahora
 
-* `agregar_objeto` (`append`, O(1)): Link empieza con la **Espada Minish** y la **Pluma de Roc**, y recibe los objetos de las salas marcadas.
+| # | Opción del menú | Qué hace | Estructuras |
+|---|---|---|---|
+| 1 | Moverse a otra sala | Muestra las puertas según el grafo; las selladas no se cruzan. Cada movimiento dispara un evento, descubre la sala, recoge su tesoro y revisa las misiones | Grafo, diccionario, pila, cola, lista, árbol |
+| 2 | Ver inventario | Lista los objetos de Link | Lista |
+| 3 | Usar un objeto | `usar_objeto` (búsqueda lineal) y registro en el historial | Lista, pila |
+| 4 | Deshacer | Revierte la última acción (backtracking real) | Pila, diccionario |
+| 5 | Ocarina del Viento | Deshace varias acciones (`deshacer_multiples`) | Pila |
+| 6 | Ver historial | Pila de la cima a la base, consulta de la cima y conteos por tipo | Pila |
+| 7 | Explorar la sala | Procesa varios eventos seguidos (`procesar_multiples_eventos`) | Cola, diccionario, árbol |
+| 8 | Turnos de batalla | Ronda de combate con rotación `popleft` + `append` | Cola |
+| 9 | Ruta más corta (BFS) | Ruta con menos saltos a cualquier sala respetando las puertas selladas; si no hay ruta, dice qué misión la abre | Grafo, diccionario |
+| 10 | Alcanzables y zonas aisladas (DFS) | Salas a las que se puede llegar ahora y zonas que quedan aisladas tras puertas selladas | Grafo, diccionario |
+| 11 | Árbol de misiones | Árbol con sangría (preorden), disponibles por etapa (por niveles) y rupias por rama (postorden) | Árbol, diccionario |
+| 12 | Estado del mundo | Salas visitadas, tesoros, enemigos vencidos, rupias y puertas selladas | Diccionario |
+| 13 | Salir | Resumen final de la partida | Todas |
+
+Además, al iniciar la partida se generan la mazmorra recursiva, el grafo con atajos y las puertas selladas. Las misiones se completan solas al cumplir su condición: dan rupias y abren puertas.
+
+---
+
+## 1. Mapa como grafo — `grafo.py` y `mazmorra.py`
+
+### Qué parte del juego resuelve
+
+El Palacio de los Vientos es un **grafo no dirigido**: cada sala es un vértice y cada puerta es una arista. El grafo responde tres preguntas del juego:
+
+* **¿Por dónde puede moverse Link?** Las puertas de una sala son los vecinos de ese vértice.
+* **¿Cuál es la ruta más corta a una sala?** BFS (opción 9).
+* **¿Qué salas puede alcanzar ahora y cuáles quedan aisladas?** DFS y componentes conexas (opción 10).
+
+### Una implementación genérica
+
+`grafo.py` define la clase `Grafo` con **lista de adyacencia** (un diccionario vértice → lista de vecinos). No sabe nada de mazmorras: funciona con cualquier conjunto de elementos relacionados. Su autoprueba (`python grafo.py`) la usa con otro mapa, el de las regiones de Hyrule, para demostrarlo.
+
+| Método | Qué hace | Complejidad |
+|---|---|---|
+| `agregar_vertice`, `agregar_arista` | Construyen el grafo (sin duplicados ni lazos) | O(1) promedio / O(grado) |
+| `vecinos`, `existe_arista` | Consultas seguras (no fallan con vértices inexistentes) | O(grado) |
+| `bfs(origen, bloqueadas)` | Recorrido por niveles con una cola `deque` | **O(V + E)** |
+| `ruta_mas_corta(origen, destino, bloqueadas)` | Ruta con menos saltos (BFS + padres) o `None` | **O(V + E)** |
+| `dfs(origen, bloqueadas)` | Recorrido en profundidad, recursivo | **O(V + E)** |
+| `alcanzables(origen, bloqueadas)` | Conjunto de vértices alcanzables (DFS) | **O(V + E)** |
+| `componentes_conexas(bloqueadas)` | Zonas aisladas (un DFS por zona) | **O(V + E)** |
+
+Todos los recorridos reciben un conjunto opcional de **aristas bloqueadas**. Así, el mismo grafo responde "¿por dónde se puede pasar ahora?" sin borrar aristas: las puertas selladas viven en el diccionario de estado y se le pasan al grafo.
+
+### ¿Por qué un grafo, por qué lista de adyacencia, y por qué BFS y DFS?
+
+* **Grafo y no árbol:** la mazmorra recursiva del Checkpoint 2 es un árbol, es decir, un grafo conexo sin ciclos, así que entre dos salas hay **un solo camino**. `mazmorra.agregar_atajos()` agrega dos puertas nuevas entre salas que están a 3 saltos o más. Esas puertas crean **ciclos** y, con ellos, **caminos alternativos**. Ya no es un árbol, por eso hace falta un grafo.
+* **Lista de adyacencia y no matriz:** cada sala tiene pocas puertas (grafo disperso). La lista ocupa O(V + E) y recorre los vecinos de una sala en O(grado). Una matriz ocuparía O(V²) aunque casi todas sus celdas estuvieran vacías.
+* **BFS para la ruta más corta:** BFS explora por niveles (primero las salas a 1 salto, luego a 2…). Por eso, la primera vez que llega al destino lo hace por la ruta con **menos saltos**.
+* **DFS para lo alcanzable:** para saber qué hay detrás de cada puerta no importa el orden. DFS baja por un camino hasta el fondo y regresa, visitando cada sala una sola vez. Lanzado desde cada sala no visitada, separa el mapa en **zonas aisladas**.
+
+### Dibujo del grafo (partida de la evidencia)
+
+Líneas sólidas: puertas del árbol recursivo original. Líneas punteadas: los **2 atajos** que forman ciclos. Las etiquetas marcan las **puertas selladas** al empezar y la misión que abre cada una (GitHub dibuja este diagrama automáticamente):
+
+```mermaid
+graph TD
+    E["Entrada del Palacio de los Vientos"]
+    G["Galería de los Vientos"]
+    B["Biblioteca Hyliana"]
+    C["Cámara de las Antorchas"]
+    CR["Cripta de los Caballeros"]
+    ES["Escalinata Celeste"]
+    T["Torre del Remolino"]
+    J["Puente de las Nubes<br/>JEFE VAATI"]
+    BO["Bóveda de las Rupias<br/>COFRE: Fragmento de Corazón"]
+    P["Pasillo de los Ecos<br/>COFRE: Boomerang Mágico"]
+    S["Santuario Minish<br/>COFRE: Brazalete de Fuerza"]
+    JA["Jardín de los Picori<br/>COFRE: Llave del Jefe"]
+    E --- G
+    E --- B
+    E --- C
+    G --- CR
+    B --- ES
+    C --- T
+    CR ---|"sellada: Reunir 3 tesoros"| J
+    CR --- BO
+    ES --- P
+    ES --- S
+    T --- JA
+    CR -.-|"atajo sellado: Explorar 3 salas"| P
+    BO -.-|"atajo sellado: Vencer a 2 secuaces"| JA
+```
+
+| Puerta sellada al inicio | Tipo | Se abre con la misión |
+|---|---|---|
+| Cripta de los Caballeros ↔ Puente de las Nubes [JEFE VAATI] | Puerta del jefe | Reunir 3 tesoros |
+| Cripta de los Caballeros ↔ Pasillo de los Ecos | Atajo 1 (ciclo) | Explorar 3 salas |
+| Bóveda de las Rupias ↔ Jardín de los Picori | Atajo 2 (ciclo) | Vencer a 2 secuaces de Vaati |
+
+12 vértices y 13 aristas: las 11 del árbol original más los 2 atajos. Al iniciar, el juego también imprime la lista de adyacencia completa.
+
+**Ejemplo real de la evidencia:** con el atajo 2 abierto, BFS lleva a Link del Jardín de los Picori al Pasillo de los Ecos en 3 saltos. Por el árbol original serían 6:
+
+```
+🧭 Ruta más corta (BFS): 3 salto(s)
+    0. Jardín de los Picori [COFRE: Llave del Jefe]
+    1. Bóveda de las Rupias [COFRE: Fragmento de Corazón]
+    2. Cripta de los Caballeros
+    3. Pasillo de los Ecos [COFRE: Boomerang Mágico]
+    ¡Un atajo ahorra 3 salto(s)! Por el árbol original serían 6.
+```
+
+---
+
+## 2. Árbol de misiones — `misiones.py`
+
+### Qué parte del juego resuelve
+
+Las misiones del palacio **dependen de la anterior**: una misión solo se puede completar cuando su padre está completado. Cada misión tiene una **condición** (por ejemplo, "visitar 3 salas"), una **recompensa** en rupias y, algunas, **una puerta que abren**. Completar una misión cambia la partida: da rupias, abre puertas del grafo y desbloquea a sus hijas.
+
+```
+Entrar al Palacio de los Vientos                         (raíz, se completa al empezar)
+├── Explorar 3 salas                   +10   abre el atajo 1
+│   └── Cartografiar 6 salas           +20
+├── Abrir el primer cofre              +15
+│   └── Reunir 3 tesoros               +30   abre la puerta del jefe
+│       └── Derrotar a Vaati           +100  ¡Hyrule se salva!
+└── Vencer a 2 secuaces de Vaati       +20   abre el atajo 2
+    └── Recibir la bendición de la Gran Hada  +10
+```
+
+```mermaid
+graph TD
+    R["Entrar al Palacio de los Vientos"]
+    R --> X3["Explorar 3 salas<br/>+10 · abre el atajo 1"]
+    X3 --> X6["Cartografiar 6 salas<br/>+20"]
+    R --> C1["Abrir el primer cofre<br/>+15"]
+    C1 --> C3["Reunir 3 tesoros<br/>+30 · abre la puerta del jefe"]
+    C3 --> V["Derrotar a Vaati<br/>+100"]
+    R --> S2["Vencer a 2 secuaces de Vaati<br/>+20 · abre el atajo 2"]
+    S2 --> H["Recibir la bendición de la Gran Hada<br/>+10"]
+```
+
+8 misiones, altura 3 y 3 hojas. Es la evolución del árbol de la exposición (`exposicion/arboles.py`), ahora conectado a la partida.
+
+### ¿Por qué un árbol?
+
+Cada misión tiene **un solo requisito anterior**, y ese requisito está en un solo lugar: eso es un árbol (cada nodo tiene un solo padre). El árbol hace natural la regla de dependencias: una misión está **disponible** si no está completada y su padre sí lo está. Al recorrerlo, el juego sabe en O(n) qué se puede hacer en cada momento.
+
+### Recorridos que usa el juego (cada uno con un propósito)
+
+| Recorrido | Función | Para qué se usa en el juego | Complejidad |
+|---|---|---|---|
+| **Preorden** | `imprimir_preorden` | Mostrar el árbol con sangría y el estado de cada misión (opción 11) | O(n) |
+| **Por niveles** | `recorrido_por_niveles` | Listar las misiones disponibles por etapa, con su progreso `[1/3]` (opción 11) | O(n) |
+| **Postorden** | `recompensa_rama` | Sumar las rupias ganadas y pendientes de cada rama: los hijos se suman antes que el padre (opción 11) | O(n) |
+
+Otras funciones: `misiones_disponibles` O(n), `buscar_mision` O(n), `completar_mision` O(n) (respeta el bloqueo) y `revisar_misiones`. Esta última completa sola toda misión disponible cuya condición ya se cumple, y repite en cascada si al completar una se desbloquea otra.
+
+---
+
+## 3. Diccionario del estado del mundo — `estado.py`
+
+### Qué parte del juego resuelve
+
+Todo lo que cambia mientras se juega y que el juego consulta en cada acción:
+
+```python
+estado = {
+    "salas": {                                    # clave: nombre de la sala (texto único)
+        "Cripta de los Caballeros": {"visitada": True, "tesoro": None, "recogido": False},
+        "Bóveda de las Rupias [COFRE: Fragmento de Corazón]":
+            {"visitada": True, "tesoro": "Fragmento de Corazón", "recogido": True},
+        ...
+    },
+    "puertas_selladas": {                         # clave: TUPLA ordenada (sala_a, sala_b)
+        ("Cripta de los Caballeros", "Puente de las Nubes [JEFE VAATI]"): "Reunir 3 tesoros",
+    },
+    "eventos": {"enemigo": 3, "rupias": 1, "trampa": 1, "hada": 1},   # clave: tipo de evento
+    "rupias": 225,
+}
+```
+
+### Elección de las claves
+
+* **Sala → nombre de la sala (texto).** El generador nunca repite nombres, así que identifica a cada sala de forma única.
+* **Puerta → tupla ordenada `(sala_a, sala_b)`.** Una tupla es inmutable y por eso puede ser clave. Una lista no podría, porque no es *hasheable*. Al ordenarla, la puerta A-B y la puerta B-A son la misma clave.
+* **Evento → su tipo** (`"enemigo"`, `"rupias"`, `"hada"`…), para contarlos.
+
+### Operaciones del diccionario en el juego
+
+| Operación | Dónde | Ejemplo |
+|---|---|---|
+| **Consulta con `.get()`** | `obtener_sala`, `motivo_sello`, `contar_eventos` | `estado["puertas_selladas"].get(clave)` → la misión que abre la puerta, o `None` |
+| **Actualización** | `marcar_visitada`, `marcar_tesoro`, `sumar_rupias` | Link entra a una sala: `"visitada": True` |
+| **Inserción** | `crear_estado`, `sellar_puerta`, `registrar_evento` | El primer evento de un tipo nuevo: `eventos[tipo] = eventos.get(tipo, 0) + 1` |
+| **Eliminación** | `abrir_puerta` | `puertas_selladas.pop(clave, None)` cuando una misión abre la puerta |
+| **Funciones propias de resumen y filtro** | `salas_visitadas`, `tesoros_pendientes`, `contar_tesoros_recogidos`, `resumen_estado` | Las misiones revisan `resumen_estado()` para saber si se cumplió su condición |
+
+### ¿Por qué un diccionario?
+
+En cada movimiento el juego pregunta si una puerta está sellada, si una sala ya se visitó y cuántos enemigos venció Link. Con un diccionario (tabla hash) cada consulta es **O(1) en promedio**. Con una lista de salas habría que recorrerla hasta encontrar la que se busca: **O(n)**. Además, nunca se usa `[]` con una clave que podría no existir: se usa `.get()` o `in`, así que no hay `KeyError`.
+
+---
+
+## 4. Integración: cómo trabajan juntas las estructuras
+
+Ninguna estructura funciona sola. Esto es lo que pasa en **un movimiento**:
+
+```
+Link elige una puerta (opción 1)
+   │
+   ├─► ¿Está en el DICCIONARIO de puertas selladas? ── sí ─► "Un muro de viento…" (no se mueve)
+   │                                                 no
+   ├─► PILA: historial.registrar_accion({"tipo": "Moverse", "desde": A, "hacia": B})
+   ├─► COLA: eventos.procesar_siguiente_evento()  ──► DICCIONARIO: registrar_evento(tipo), rupias
+   ├─► DICCIONARIO: marcar_visitada(B)
+   ├─► ¿Tesoro? ──► LISTA: inventario.agregar_objeto  +  DICCIONARIO: marcar_tesoro  +  PILA: "Recoger"
+   └─► ÁRBOL: revisar_misiones(indicadores del DICCIONARIO)
+            └─► misión completada ──► DICCIONARIO: sumar_rupias, abrir_puerta (pop)
+                                          └─► GRAFO: BFS y DFS ya pueden cruzar esa puerta
+```
+
+* **Grafo ↔ diccionario:** el grafo guarda **todas** las puertas. El diccionario guarda **cuáles están selladas** y se las pasa a BFS y DFS como aristas bloqueadas.
+* **Diccionario → árbol:** las condiciones de las misiones se revisan con los números del estado del mundo (salas visitadas, tesoros, enemigos, hadas, jefe derrotado).
+* **Árbol → diccionario → grafo:** al completarse, una misión elimina una puerta sellada del diccionario. En ese instante BFS encuentra rutas más cortas por el atajo y DFS deja de ver la sala del jefe como zona aislada.
+* **Cola → diccionario → árbol:** cada evento procesado (al moverse o al explorar la sala) se cuenta por tipo. Vencer a 2 secuaces completa una misión y abre el atajo 2.
+
+### Decisión: ¿qué pasa con el estado del mundo al deshacer?
+
+**Deshacer revierte la posición de Link y los tesoros recogidos, pero no lo que Link ya descubrió o logró.**
+
+| Al deshacer… | Qué se revierte | Qué se conserva |
+|---|---|---|
+| Un movimiento | Link vuelve a la sala `desde` (backtracking) | La sala sigue **visitada** y el evento ya vivido no vuelve a la cola |
+| Una recolección | El objeto sale del inventario y el diccionario lo marca de nuevo `"recogido": False` | Las **misiones completadas**, sus rupias y las puertas que abrieron |
+| Un uso de objeto | El efecto se desvanece | El objeto (no se consume) |
+
+**Por qué:**
+
+1. **Coherencia con el mundo:** la Ocarina devuelve a Link en el espacio, no en el tiempo del mundo. El mapa que ya recorrió sigue en su memoria, el Moblin derrotado no revive y el viento que se disipó no vuelve a sellar la puerta.
+2. **Evita trampas:** si deshacer quitara las rupias de una misión, el jugador podría repetir la misión para cobrarla varias veces. Como cada misión se completa **una sola vez**, deshacer y rehacer nunca da recompensas dobles.
+3. **El juego siempre se puede terminar:** una puerta abierta nunca se vuelve a sellar, así que deshacer nunca encierra a Link.
+
+La regla de los eventos del Checkpoint 2 se mantiene: un evento procesado se pierde y no vuelve a la cola, para que la cola siga siendo FIFO pura.
+
+---
+
+## 5. Casos límite
+
+El programa **nunca se cierra con un error**: muestra un mensaje claro y sigue.
+
+| Caso límite | Dónde se maneja | Qué pasa |
+|---|---|---|
+| Texto, vacío, `0`, negativo o fuera de rango en **cualquier** menú | `leer_opcion_numerica` | `int()` dentro de `try/except ValueError` y validación del rango; vuelve al menú |
+| Sala, misión o clave que no existe | `Grafo.vecinos`, `estado.obtener_sala`, `misiones.buscar_mision` | Retornan lista vacía, `None` o `(None, None)` con `.get()`; nunca `KeyError` |
+| Ruta sin resultado posible | `accion_ruta` + `Grafo.ruta_mas_corta` → `None` | "Ahora mismo no hay ruta…" y qué misión abre la puerta que la bloquea |
+| Ruta a la misma sala | `accion_ruta` | "Link ya está en esa sala." |
+| Cruzar una puerta sellada (acción no permitida) | `accion_moverse` + `estado.motivo_sello` | "Un muro de viento sella la puerta…"; Link no se mueve |
+| Recoger un tesoro ya recogido, completar una misión ya completada o bloqueada (acciones repetidas) | `intentar_recoger_tesoro`, `misiones.completar_mision` | Mensaje de aviso; no se duplica nada |
+| Abrir una puerta que ya estaba abierta | `estado.abrir_puerta` | `pop(clave, None)` no falla y retorna `False` |
+| Deshacer u Ocarina con el historial vacío | `historial.deshacer_ultima_accion` / `deshacer_multiples` | Avisan y retornan `None` / `[]` |
+| Explorar con la cola vacía | `eventos.procesar_multiples_eventos` | "Hyrule está en calma" |
+| Aristas repetidas, lazos o vértices inexistentes en el grafo | `Grafo.agregar_arista`, `Grafo.bfs` | Retornan `False` o `[]` |
+| `Ctrl+C` o fin de la entrada | `leer_entrada` | Cierre ordenado, sin traceback |
+| Consola de Windows o salida redirigida a un archivo | inicio de `main.py` | `sys.stdout.reconfigure(encoding="utf-8", errors="replace")` |
+
+**Pruebas realizadas:** 300 partidas con entradas aleatorias, incluidas entradas inválidas, sin un solo error. Además, en 300 mazmorras distintas un jugador que sigue las rutas BFS siempre logra derrotar a Vaati, así que todas las partidas se pueden ganar.
+
+---
+
+## 6. Resumen de complejidades
+
+| Estructura | Operación | Complejidad | Por qué |
+|---|---|---|---|
+| Grafo | BFS, DFS, ruta más corta, zonas aisladas | O(V + E) | Cada sala se visita una vez y cada puerta se revisa una vez |
+| Grafo | Vecinos de una sala | O(grado) | Lista de adyacencia: solo se miran sus puertas |
+| Árbol | Preorden, por niveles, postorden, disponibles, buscar | O(n) | Cada misión se visita una vez |
+| Árbol | `agregar_hijo` | O(1) | `append` a la lista de hijos |
+| Diccionario | Consultar, insertar, actualizar, eliminar | O(1) promedio | Tabla hash: se va directo a la clave |
+| Lista (comparación) | Buscar una sala por nombre | O(n) | Habría que recorrerla elemento por elemento |
+| Pila (CP2) | `append` / `pop` | O(1) | Se opera solo en la cima |
+| Cola (CP2) | `append` / `popleft` de `deque` | O(1) | `list.pop(0)` sería O(n) |
+| Mazmorra (CP2) | Generación recursiva | O(b^d) | b = ramificación, d = profundidad |
+
+---
+
+## 7. Evidencia de ejecución
+
+`docs/evidencia_checkpoint3.txt` tiene el texto completo de la consola de una partida, de principio a fin. Para reproducirla se usó la semilla 32. Muestra:
+
+* la mazmorra recursiva, el grafo con sus atajos y las puertas selladas;
+* casos límite (`abc`, `0`, `-1`, `99`, deshacer y Ocarina con el historial vacío, intento de cruzar una puerta sellada y una ruta imposible);
+* BFS sin ruta (la puerta del jefe sellada), y después BFS con el atajo, que ahorra 3 saltos;
+* DFS con la zona aislada del jefe al principio, y sin zonas aisladas al final;
+* las 8 misiones completándose en cascada, con sus rupias y las puertas que abren;
+* un deshacer de una recolección y de un movimiento, y la Ocarina deshaciendo 2 acciones;
+* el árbol de misiones con sus tres recorridos, el estado del mundo, el historial y una ronda de turnos.
+
+Fragmento del árbol de misiones al final de la partida:
+
+```
+=============== MISIONES DEL PALACIO ===============
+  [completada] Entrar al Palacio de los Vientos
+      [completada] Explorar 3 salas (+10 rupias)
+          [completada] Cartografiar 6 salas (+20 rupias)
+      [completada] Abrir el primer cofre (+15 rupias)
+          [completada] Reunir 3 tesoros (+30 rupias)
+              [completada] Derrotar a Vaati (+100 rupias)
+      [completada] Vencer a 2 secuaces de Vaati (+20 rupias)
+          [completada] Recibir la bendición de la Gran Hada (+10 rupias)
+
+  Completadas: 8 de 8 | Altura del árbol: 3
+```
+
+---
+
+## 8. Aportes del equipo (Checkpoint 3)
+
+Los commits de cada integrante están en el historial del repositorio.
+
+* **Alejandro Esperanza:** clase genérica `Grafo` en `grafo.py` (lista de adyacencia, BFS, ruta más corta, DFS, alcanzables y zonas aisladas, con aristas bloqueadas) y la conversión de la mazmorra a grafo con atajos en `mazmorra.py`.
+* **Jonathan Delgado:** diccionario del estado del mundo en `estado.py` (claves, `.get()`, inserción, actualización, eliminación y funciones de resumen y filtro) y la clasificación de eventos por tipo en `eventos.py`.
+* **Arturo Guardado:** árbol de misiones en `misiones.py` (nodos con condición, recompensa y puerta; recorridos preorden, por niveles y postorden; misiones disponibles y completado en cascada).
+* **Fernando Mejía:** integración en `main.py` (menú de 13 opciones, puertas selladas, BFS y DFS en el juego, misiones con efecto, decisión sobre el estado al deshacer), pruebas de casos límite, evidencia y este README.
+
+---
+
+# Checkpoints anteriores
+
+Lo construido en los Checkpoints 1 y 2 sigue funcionando dentro del juego. Las opciones 1 a 8 del menú conservan la misma numeración que en el Checkpoint 2.
+
+## Base del Checkpoint 1
+
+El inventario con listas sigue funcionando, y sus tres funciones se usan dentro de la partida:
+
+* `agregar_objeto` (`append`, O(1)): Link empieza con la **Espada Minish** y la **Pluma de Roc**, y recibe los objetos de los cofres y del jefe.
 * `usar_objeto` (búsqueda lineal con `in`, O(n)): opción 3 del menú, **Usar un objeto**.
 * `soltar_objeto` (`remove`, O(n)): devuelve un objeto a su cofre cuando se deshace una recolección.
 
 El pseudocódigo y el diagrama de flujo de `usar_objeto` están en `docs/`.
 
----
+## Aportes del equipo (Checkpoint 2)
 
-## 1. Historial de acciones (Pila / LIFO) — `historial.py`
+* **Alejandro Esperanza:** `historial.py` (pila con `append`/`pop`), `deshacer_multiples` y `contar_acciones_de_tipo`.
+* **Jonathan Delgado:** `eventos.py` con `collections.deque`, `simular_turnos` y `procesar_multiples_eventos`.
+* **Fernando Mejía:** `mazmorra.py`: la función recursiva `generar_mazmorra`, el marcado de salas profundas, la ramificación variable, la profundidad real, el conteo por nivel y la impresión del árbol.
+* **Arturo Guardado:** integración en `main.py` (menú, backtracking, recolección de tesoros), validación de entradas y evidencia de ejecución.
 
-### Mecánica implementada
+
+## Checkpoint 2 · Historial de acciones (Pila / LIFO) — `historial.py`
+
+#### Mecánica implementada
 
 El **Libro de Crónicas de Hyrule** registra cada acción importante de Link: moverse de sala, recoger un objeto y usar un objeto. Cada acción se guarda como un diccionario:
 
@@ -78,13 +411,13 @@ Guardar el origen (`desde`) es lo que permite el **backtracking real**: al desha
 | `deshacer_multiples` *(Guía 5)* | "Ocarina del Viento": deshace `n` acciones (**opción 5 del menú**) | `pop()` × n | O(k), k = mín(n, tamaño) |
 | `contar_acciones_de_tipo` *(Guía 5)* | Cuenta acciones de un tipo (**opción 6 del menú**: movimientos, recolecciones y usos) | recorrido | O(n) |
 
-### ¿Por qué una pila (LIFO)?
+#### ¿Por qué una pila (LIFO)?
 
 Deshacer consiste, por definición, en revertir **primero lo último que se hizo**. Si Link camina Entrada → Pasillo → Torre, la única forma coherente de retroceder es Torre → Pasillo → Entrada: el orden inverso exacto en que avanzó. Una pila garantiza ese comportamiento por su propia estructura, porque el último elemento que entra es el primero que sale. Es el mismo principio que usan el botón "Atrás" del navegador o Ctrl+Z en un editor.
 
 Con una cola (FIFO) se desharía la acción más antigua (volver a la entrada desde cualquier punto), lo que rompería la coherencia del recorrido.
 
-### Complejidad
+#### Complejidad
 
 La cima de la pila es el **final de la lista** de Python:
 
@@ -93,7 +426,7 @@ La cima de la pila es el **final de la lista** de Python:
 
 Por eso en el módulo **nunca se usan `pop(0)` ni `insert(0, x)`**: ambas operan sobre el inicio de la lista y desplazan todos los elementos, con costo O(n).
 
-### Fragmento de código relevante
+#### Fragmento de código relevante
 
 ```python
 def deshacer_ultima_accion(historial):
@@ -117,9 +450,9 @@ def deshacer_ultima_accion(historial):
 
 ---
 
-## 2. Eventos y turnos (Cola / FIFO con `deque`) — `eventos.py`
+## Checkpoint 2 · Eventos y turnos (Cola / FIFO con `deque`) — `eventos.py`
 
-### Mecánica implementada
+#### Mecánica implementada
 
 1. **Cola de eventos del mapa:** al iniciar la partida se encolan 8 eventos temáticos (un Moblin que bloquea el paso, rupias ocultas, una trampa de pinchos, Keese, un Octorok, un Chuchu Rojo, una Gran Hada y la risa de Vaati). **Cada vez que Link se mueve, se procesa el siguiente evento** con `popleft()`.
 2. **Sistema de turnos de combate:** Link, un Moblin y un Octorok forman una cola circular. El participante del frente actúa (`popleft()`) y vuelve a formarse al final (`append()`), de modo que todos actúan en orden y la ronda puede repetirse indefinidamente (Round Robin).
@@ -133,12 +466,12 @@ def deshacer_ultima_accion(historial):
 | `procesar_multiples_eventos` *(Guía 6)* | Procesa `n` eventos seguidos, se detiene si la cola se vacía (**opción 7 del menú**) | O(mín(n, tamaño)) |
 | `mostrar_cola_eventos` | Muestra los eventos pendientes sin modificar la cola (antes de explorar, opción 7) | O(n) |
 
-### ¿Por qué una cola (FIFO)?
+#### ¿Por qué una cola (FIFO)?
 
 * **Eventos del mapa:** los eventos representan lo que el destino de Hyrule tiene preparado para Link, en un orden narrativo definido. Deben ocurrir **en el mismo orden en que se programaron**: lo primero que se encola es lo primero que sucede. Eso es exactamente FIFO.
 * **Turnos de batalla:** un combate justo exige que nadie actúe dos veces antes de que los demás hayan actuado. Al sacar al participante del frente y devolverlo al final, la cola reparte los turnos de forma equitativa y cíclica, sin necesidad de contadores ni índices.
 
-### Complejidad: `deque.popleft()` O(1) frente a `list.pop(0)` O(n)
+#### Complejidad: `deque.popleft()` O(1) frente a `list.pop(0)` O(n)
 
 Esta es la razón por la que el módulo usa **obligatoriamente `collections.deque`**:
 
@@ -152,7 +485,7 @@ Esta es la razón por la que el módulo usa **obligatoriamente `collections.dequ
 
 Como **cada movimiento de Link dispara un `popleft()`**, usar `deque` mantiene el costo de cada turno constante sin importar cuántos eventos tenga el mapa.
 
-### Fragmento de código relevante
+#### Fragmento de código relevante
 
 ```python
 from collections import deque
@@ -178,9 +511,9 @@ def procesar_siguiente_evento(cola_eventos):
 
 ---
 
-## 3. Generación de mazmorra (Recursividad) — `mazmorra.py`
+## Checkpoint 2 · Generación de mazmorra (Recursividad) — `mazmorra.py`
 
-### Mecánica implementada
+#### Mecánica implementada
 
 Al iniciar la partida se genera el **Palacio de los Vientos**, la fortaleza de Vaati, como un **grafo de adyacencia** (diccionario): la clave es el nombre de la sala y el valor es la lista de salas conectadas. Las conexiones son bidireccionales, por lo que Link puede caminar en ambos sentidos.
 
@@ -193,7 +526,7 @@ Adaptaciones de la Guía 7 implementadas:
 
 La función `crear_mazmorra()` llama a la función recursiva y **garantiza los mínimos del checkpoint** (al menos 7 salas, profundidad real ≥ 2 y un jefe colocado). Si un intento aleatorio genera una mazmorra demasiado pequeña, se vuelve a generar; como respaldo final, se fuerza una ramificación mínima de 2, que asegura 1 + 2 + 4 = 7 salas.
 
-### ¿Por qué recursividad?
+#### ¿Por qué recursividad?
 
 Una mazmorra es una estructura **jerárquica**: cada puerta conduce a una sala que es, a su vez, la entrada de una mazmorra más pequeña. Generar una sala y luego "pedir que se genere el resto" desde cada una de sus puertas es aplicar el **mismo procedimiento a un subproblema más pequeño**: la definición de un problema recursivo. Hacerlo con ciclos obligaría a manejar a mano una pila de salas pendientes; la recursión usa la pila de llamadas de Python para eso, y el código queda más corto y fiel a la forma del árbol.
 
@@ -202,16 +535,16 @@ Una mazmorra es una estructura **jerárquica**: cada puerta conduce a una sala q
   * **b)** Se alcanzó el límite de salas o no quedan nombres disponibles: la sala queda como callejón sin salida.
 * **Caso recursivo:** se elige al azar cuántas puertas abre la sala (1 a 3); por cada puerta se toma un nombre nuevo, se conecta y se llama a `generar_mazmorra(...)` con `profundidad_actual + 1`. Cada llamada se acerca al caso base porque la profundidad siempre aumenta y los nombres disponibles siempre disminuyen, lo que garantiza que la recursión termina.
 
-### Complejidad
+#### Complejidad
 
 Sea **b** el factor de ramificación (máximo 3) y **d** la profundidad máxima:
 
 * **Temporal: O(b^d).** En el peor caso se crean 1 + b + b² + … + b^d salas, serie dominada por b^d (además, acotada por `limite_salas`).
 * **Espacial: O(b^d)** para el diccionario con todas las salas, más **O(d)** para la pila de llamadas, porque el recorrido es en profundidad y solo hay una llamada activa por nivel.
 
-### Árbol de la mazmorra (partida de la evidencia)
+#### Árbol de la mazmorra
 
-Como la ramificación es aleatoria, cada partida produce un árbol distinto. Este es el árbol que `imprimir_arbol_mazmorra()` mostró en la partida registrada en `docs/evidencia_partida.txt` (12 salas, profundidad 3):
+Como la ramificación es aleatoria, cada partida produce un árbol distinto. Este es el árbol que `imprimir_arbol_mazmorra()` mostró en la partida registrada en `docs/evidencia_checkpoint2.txt` (12 salas, profundidad 3). Con la misma semilla, es también el árbol de la evidencia del Checkpoint 3:
 
 ```
 =============== MAPA DEL PALACIO DE LOS VIENTOS ===============
@@ -239,7 +572,7 @@ Salas marcadas (jefe o cofre): 5
 
 Se observa la **ramificación variable** (la Entrada abre 3 puertas, la Galería de los Vientos solo 1, la Cripta de los Caballeros 2) y que **solo las salas del nivel más profundo** llevan marcador.
 
-### Fragmento de código relevante
+#### Fragmento de código relevante
 
 ```python
 def generar_mazmorra(mapa, sala_actual, sala_padre, profundidad_actual,
@@ -272,107 +605,6 @@ def generar_mazmorra(mapa, sala_actual, sala_padre, profundidad_actual,
     return mapa
 ```
 
----
+### Decisión del Checkpoint 2: ¿qué pasa con los eventos al deshacer?
 
-## 4. Integración y toma de decisiones — `main.py`
-
-### Cómo interactúan las estructuras
-
-`main.py` importa los cuatro módulos y ejecuta un menú dentro de un ciclo `while True`:
-
-```
-1. Moverse a otra sala
-2. Ver inventario
-3. Usar un objeto
-4. Deshacer última acción
-5. Tocar la Ocarina del Viento (deshacer varias acciones)
-6. Ver historial completo
-7. Explorar la sala (resolver varios eventos)
-8. Simular turnos de batalla
-9. Salir del juego
-```
-
-Cada función pedida por las guías se puede ver funcionando dentro de la partida:
-
-| Opción | Función que se llama | Estructura |
-|---|---|---|
-| 1. Moverse | `historial.registrar_accion`, `eventos.procesar_siguiente_evento`, `inventario.agregar_objeto` | Pila + Cola + Lista |
-| 2. Ver inventario | recorrido de la lista del inventario | Lista |
-| 3. Usar un objeto | `inventario.usar_objeto` + `historial.registrar_accion` | Lista + Pila |
-| 4. Deshacer | `historial.deshacer_ultima_accion` | Pila (`pop`) |
-| 5. Ocarina del Viento | `historial.deshacer_multiples` *(Guía 5)* | Pila (`pop` × n) |
-| 6. Historial | `mostrar_historial_completo`, `ver_ultima_accion`, `contar_acciones_de_tipo` *(Guía 5)* | Pila |
-| 7. Explorar la sala | `eventos.mostrar_cola_eventos`, `eventos.procesar_multiples_eventos` *(Guía 6)* | Cola (`popleft` × n) |
-| 8. Turnos de batalla | `eventos.simular_turnos` *(Guía 6)* | Cola circular |
-
-**Al iniciar:** se genera la mazmorra con la función recursiva y se imprime su árbol; Link empieza en la *Entrada del Palacio de los Vientos*; se crean el inventario (lista, con la Espada Minish y la Pluma de Roc), el historial (pila), la cola de eventos (`deque`) y la cola de turnos (Link, Moblin y Octorok).
-
-**Flujo de un movimiento (opción 1):**
-
-```
-Elegir sala conectada
-      │
-      ├─► historial.registrar_accion({"tipo": "Moverse", "desde": A, "hacia": B})   [PILA: append]
-      ├─► sala_actual = B
-      ├─► eventos.procesar_siguiente_evento(cola)                                   [COLA: popleft]
-      └─► ¿La sala tiene [JEFE VAATI] o [COFRE: ...]?
-              └─► inventario.agregar_objeto(mochila, objeto)                        [LISTA: append]
-                  historial.registrar_accion({"tipo": "Recoger", ...})              [PILA: append]
-```
-
-* **Usar un objeto (opción 3):** el jugador elige un objeto de la bolsa por número; `inventario.usar_objeto()` lo busca con una búsqueda lineal O(n) y la acción `"Usar"` se apila en el historial.
-* **Deshacer (opción 4):** `historial.deshacer_ultima_accion()` hace `pop()`. Si la acción fue un movimiento, Link vuelve a la sala `desde` (**backtracking real**). Si fue una recolección, el objeto sale del inventario y vuelve a su cofre; un segundo deshacer revierte el movimiento. Si fue un uso, el efecto se desvanece, pero el objeto sigue en la bolsa porque usarlo no lo consume. Siempre se deshace lo más reciente, respetando LIFO.
-* **Ocarina del Viento (opción 5):** el jugador indica cuántas acciones deshacer y `historial.deshacer_multiples()` ejecuta `pop()` esa cantidad de veces. `main.py` aplica el efecto de cada acción en el orden en que salieron de la pila (de la más reciente a la más antigua), con la misma lógica del deshacer simple. Si se deshacen varios movimientos, Link termina en la sala desde la que hizo el movimiento más antiguo de los deshechos.
-* **Historial (opción 6):** muestra la pila de la cima a la base, consulta la cima sin sacarla con `ver_ultima_accion` y usa `contar_acciones_de_tipo` para resumir cuántos movimientos, recolecciones y usos hizo Link.
-* **Explorar la sala (opción 7):** Link se queda en la sala y enfrenta varios eventos seguidos. Primero `mostrar_cola_eventos()` muestra los pendientes; luego el jugador elige cuántos enfrentar y `eventos.procesar_multiples_eventos()` los saca con `popleft()` en orden de llegada (FIFO).
-* **Turnos (opción 8):** `eventos.simular_turnos()` ejecuta una ronda completa con `popleft()` + `append()`.
-* Cada tesoro solo puede recogerse una vez (se controla con un conjunto `tesoros_recogidos`).
-
-### Decisión: ¿qué pasa con los eventos al deshacer un movimiento?
-
-**El evento ya procesado se pierde: no vuelve a la cola.**
-
-**Justificación:**
-
-1. **Coherencia con el mundo del juego:** el poder del tiempo devuelve a Link físicamente a la sala anterior, pero lo que ocurrió en Hyrule ya ocurrió: el Moblin derrotado no revive, las rupias recogidas no reaparecen y la trampa ya se activó. Deshacer es retroceder en el **espacio** (la ubicación de Link), no en el **destino** del mapa.
-2. **Pureza de la estructura FIFO:** volver a meter el evento obligaría a insertarlo al frente (`appendleft`), lo que rompería el principio de "el primero en llegar es el primero en salir" que la rúbrica evalúa. Así, la cola solo usa `append` para encolar y `popleft` para desencolar.
-3. **Evita trampas de juego:** si los eventos regresaran, el jugador podría moverse y deshacer repetidamente para "reciclar" eventos favorables, como las rupias o la Gran Hada.
-
-Como referencia, cada movimiento guarda en el historial el evento que disparó (clave `"evento"`), pero esa información no se reinyecta en la cola.
-
-La misma regla aplica a la **Ocarina del Viento**: aunque deshaga varios movimientos de una vez, ningún evento vuelve a la cola.
-
-### Manejo de casos límite
-
-El programa **no se cierra con error en ningún caso**; siempre muestra un mensaje y continúa el ciclo:
-
-| Caso límite | Dónde se maneja | Qué ocurre |
-|---|---|---|
-| Deshacer con historial vacío | `historial.deshacer_ultima_accion` | Verifica `len(historial) == 0` antes de `pop()`, avisa y retorna `None`; `main.py` deja a Link en su sala. |
-| Procesar evento con cola vacía | `eventos.procesar_siguiente_evento` | Verifica la longitud antes de `popleft()`, informa que la sala está despejada y retorna `None`. |
-| Texto o símbolos en un menú | `leer_opcion_numerica` en `main.py` | `int()` dentro de `try/except ValueError`; se muestra un mensaje y se hace `continue`. |
-| `0`, negativos o fuera de rango | `leer_opcion_numerica` | Se valida el rango `[mínimo, máximo]` explícitamente antes de usar el número. |
-| Sala inexistente o no conectada | `accion_moverse` + `mazmorra.existe_conexion` | Solo se aceptan índices del 1 al total de puertas mostradas (se evita que `lista[-1]` seleccione una sala), y luego se verifica la conexión en el grafo. |
-| `Ctrl+C` / fin de la entrada (EOF) en un `input()` | `leer_entrada` | Captura `KeyboardInterrupt` y `EOFError` y cierra la partida de forma ordenada (`SystemExit(0)`), sin traceback y sin quedar en un ciclo infinito. |
-| Consola de Windows o salida redirigida a archivo | inicio de `main.py` | `sys.stdout.reconfigure(encoding="utf-8", errors="replace")` evita `UnicodeEncodeError` al imprimir emojis y tildes. |
-| Parámetros inválidos de la mazmorra | `mazmorra.crear_mazmorra` | Valida tipo y rango de la profundidad y del límite de salas; nunca genera menos de 7 salas ni profundidad menor a 2. |
-| Ocarina con historial vacío / Explorar con cola vacía | `deshacer_multiples`, `procesar_multiples_eventos` | Avisan que no hay acciones o eventos y retornan una lista vacía; Link no se mueve. |
-| Cantidad inválida en la Ocarina o al Explorar | `accion_ocarina`, `accion_explorar` en `main.py` | Solo se acepta de 1 hasta el total de acciones o eventos disponibles; texto, `0`, negativos o un número mayor se rechazan y no se deshace ni se procesa nada. |
-| Usar un objeto con la bolsa vacía o un número inválido | `accion_usar_objeto` en `main.py` | Avisa que la bolsa está vacía o rechaza la opción; no se registra ninguna acción. |
-
-> **Nota técnica:** en Python, `lista[-1]` no lanza error porque cuenta desde el final. Por eso, en `main.py` se valida el rango **antes** de usar el índice `eleccion - 1`.
-
----
-
-## 6. Exposición de árboles — `arboles.py`
-
-Archivo independiente para la exposición de árboles, árboles de decisión y dependencias (base del árbol de misiones del Checkpoint 3). Se ejecuta con `python arboles.py` (o `python arboles.py --sin-pausas`) y no importa los otros módulos.
-
-* **Árbol de misiones** (clase `Nodo`): 11 misiones, altura 4 y 4 hojas, con `agregar_hijo`, recorrido en preorden con sangría, `altura`, `contar_hojas`, `misiones_disponibles` y `completar_mision`, que no deja completar una misión bloqueada.
-* **Coherencia con el juego:** al rescatar a Ezlo, Link recibe la Espada Minish y la Pluma de Roc (por eso empieza con ambas en `main.py`); las misiones siguientes son templarlas y dominarlas. La rama final, *Entrar al Palacio de los Vientos → Derrotar a Vaati*, es la mazmorra que se juega en este checkpoint.
-* **Árbol de decisión del Moblin** guardián del Palacio de los Vientos: 4 preguntas y 5 decisiones, con `decidir(nodo, situacion)` en O(h).
-* **Caso real:** un torneo de tenis de eliminación directa, con preorden, inorden y postorden.
-
-## 5. Evidencia de ejecución
-
-El archivo `docs/evidencia_partida.txt` contiene el texto de la consola de una partida completa, que muestra: la mazmorra generada, al menos 3 movimientos, al menos 2 eventos procesados, una ronda completa del sistema de turnos, un deshacer que devuelve a Link a la sala anterior, el historial en pantalla y varios casos límite manejados sin error (deshacer y Ocarina con historial vacío, y las opciones `abc`, `0` y `-2` en el menú). También muestra funcionando dentro de la partida las funciones de las guías: `usar_objeto` (Checkpoint 1), `deshacer_multiples` y `contar_acciones_de_tipo` (Guía 5), y `procesar_multiples_eventos` y `simular_turnos` (Guía 6).
+**El evento ya procesado se pierde: no vuelve a la cola.** El poder del viento devuelve a Link a la sala anterior, pero lo que ocurrió en Hyrule ya ocurrió: el Moblin derrotado no revive y la trampa ya se activó. Además, volver a meter el evento obligaría a usar `appendleft`, lo que rompería el orden FIFO, y permitiría "reciclar" eventos favorables moviéndose y deshaciendo. El Checkpoint 3 mantiene esta regla y la extiende al estado del mundo (sección 4).
