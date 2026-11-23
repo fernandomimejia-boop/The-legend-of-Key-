@@ -3,6 +3,19 @@
 
 > Link entra al **Palacio de los Vientos**, una mazmorra que cambia en cada partida. Vaati se esconde tras una puerta sellada por el viento: para abrirla, Link debe completar las misiones del palacio, descubrir salas, abrir cofres y vencer a sus secuaces. Cada misión cumplida abre atajos que cambian las rutas del mapa.
 
+## Integrantes del equipo
+
+**Equipo 1** · CS2001 Estructura de Datos y Algoritmos · Instituto Kriete de Ingeniería y Ciencias (IKIC)
+
+| Integrante | Usuario de GitHub |
+|---|---|
+| Alejandro Josué Esperanza Cardoza | [@Hopeelex](https://github.com/Hopeelex) |
+| Jonathan Andrés Delgado Chom Him | [@jonathan965](https://github.com/jonathan965) |
+| José Arturo Guardado Rivas | [@josearturog54-blip](https://github.com/josearturog54-blip) |
+| Fernando Miguel Mejía Jaco | [@fernandomimejia-boop](https://github.com/fernandomimejia-boop) |
+
+Lo que aportó cada integrante está en la sección **8. Aportes del equipo** (Checkpoint 3) y en **Aportes del equipo (Checkpoint 2)**, al final de este archivo.
+
 ---
 
 ## Cómo ejecutar el juego
